@@ -1,0 +1,455 @@
+/* ═══════════════════════════════════════════════════════════════════
+   Malha Arcana — Estilos do Módulo
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ─── Base Card ─────────────────────────────────────────────────── */
+.malha-arcana-card {
+  border: 2px solid #4a3875;
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 4px 0;
+  font-family: "Signika", sans-serif;
+  background: #1a1a2e;
+  color: #e0e0e0;
+}
+
+/* ─── Headers ───────────────────────────────────────────────────── */
+.malha-header {
+  padding: 8px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.malha-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: bold;
+  color: #fff;
+  border: none;
+}
+
+.malha-header-safe {
+  background: linear-gradient(135deg, #2d5a3d, #1e4030);
+  border-bottom: 2px solid #3d8a5a;
+}
+
+.malha-header-success {
+  background: linear-gradient(135deg, #1a5c3a, #0d3d25);
+  border-bottom: 2px solid #27ae60;
+}
+
+.malha-header-fail {
+  background: linear-gradient(135deg, #5c1a1a, #3d0d0d);
+  border-bottom: 2px solid #c0392b;
+}
+
+.malha-header-ruptura {
+  background: linear-gradient(135deg, #4a1a5c, #2e0d3d);
+  border-bottom: 2px solid #8e44ad;
+  animation: malha-ruptura-pulse 1.5s ease-in-out infinite;
+}
+
+.malha-header-backlash {
+  background: linear-gradient(135deg, #5c3a1a, #3d250d);
+  border-bottom: 2px solid #e67e22;
+}
+
+.malha-header-purge {
+  background: linear-gradient(135deg, #1a3d5c, #0d2540);
+  border-bottom: 2px solid #3498db;
+}
+
+.malha-spell-type {
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 2px 8px;
+  border-radius: 10px;
+  color: #ddd;
+}
+
+/* ─── Body ──────────────────────────────────────────────────────── */
+.malha-body {
+  padding: 10px 12px;
+}
+
+.malha-body p {
+  margin: 4px 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.malha-info {
+  font-size: 11px !important;
+  color: #a0a0b0;
+  font-style: italic;
+}
+
+/* ─── Upcast tag ────────────────────────────────────────────────── */
+.malha-upcast {
+  background: #e67e22;
+  color: #fff;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+/* ─── Roll Details ──────────────────────────────────────────────── */
+.malha-roll-details {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 8px 0;
+}
+
+.malha-roll-line {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0;
+  font-size: 12px;
+}
+
+.malha-roll-label {
+  color: #a0a0b0;
+}
+
+.malha-roll-value {
+  font-weight: bold;
+  color: #e0e0e0;
+}
+
+.malha-roll-total {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 4px;
+  padding-top: 4px;
+  font-size: 14px;
+}
+
+.malha-roll-dc {
+  color: #a0a0b0;
+}
+
+.malha-raw-die {
+  font-size: 16px;
+}
+
+.malha-nat1 {
+  color: #e74c3c !important;
+  text-shadow: 0 0 6px rgba(231, 76, 60, 0.5);
+}
+
+.malha-nat20 {
+  color: #f1c40f !important;
+  text-shadow: 0 0 6px rgba(241, 196, 15, 0.5);
+}
+
+/* ─── Corruption Info ───────────────────────────────────────────── */
+.malha-corruption-info {
+  background: rgba(100, 20, 20, 0.3);
+  border: 1px solid rgba(192, 57, 43, 0.4);
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin: 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.malha-corruption-label {
+  color: #e74c3c;
+  font-weight: bold;
+}
+
+.malha-corruption-value {
+  font-weight: bold;
+  color: #f39c12;
+  font-size: 14px;
+}
+
+.malha-corruption-margin {
+  font-size: 10px;
+  color: #a0a0b0;
+}
+
+/* ─── Outcome Blocks ────────────────────────────────────────────── */
+.malha-outcome {
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-top: 8px;
+}
+
+.malha-outcome-success {
+  background: rgba(39, 174, 96, 0.15);
+  border: 1px solid rgba(39, 174, 96, 0.4);
+}
+
+.malha-outcome-fail {
+  background: rgba(192, 57, 43, 0.15);
+  border: 1px solid rgba(192, 57, 43, 0.4);
+}
+
+.malha-outcome-ruptura {
+  background: rgba(142, 68, 173, 0.2);
+  border: 1px solid rgba(142, 68, 173, 0.5);
+}
+
+.malha-ruptura-alert {
+  font-size: 16px !important;
+  font-weight: bold;
+  color: #d9a0ff;
+  text-align: center;
+  text-shadow: 0 0 10px rgba(142, 68, 173, 0.6);
+}
+
+.malha-ruptura-sub {
+  font-size: 11px !important;
+  color: #b070d0;
+  text-align: center;
+}
+
+/* ─── Backlash Damage ───────────────────────────────────────────── */
+.malha-damage-box {
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid #e67e22;
+  border-radius: 8px;
+  padding: 10px;
+  margin: 8px 0;
+  text-align: center;
+}
+
+.malha-damage-formula {
+  font-size: 12px;
+  color: #a0a0b0;
+  margin-bottom: 4px;
+}
+
+.malha-damage-total {
+  font-size: 20px;
+  font-weight: bold;
+  color: #e74c3c;
+  text-shadow: 0 0 8px rgba(231, 76, 60, 0.4);
+}
+
+.malha-damage-note {
+  font-size: 10px;
+  color: #e67e22;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+.malha-auto-applied {
+  font-size: 11px !important;
+  color: #7f8c8d;
+  text-align: center;
+}
+
+.malha-manual-apply {
+  font-size: 11px !important;
+  color: #e67e22;
+  text-align: center;
+  font-weight: bold;
+}
+
+.malha-narrative {
+  font-size: 12px !important;
+  color: #c39bd3;
+  border-left: 3px solid #8e44ad;
+  padding-left: 8px;
+  margin: 8px 0;
+}
+
+/* ─── Ruptura Arcana Card ───────────────────────────────────────── */
+.malha-ruptura-card {
+  border-color: #8e44ad;
+}
+
+.malha-ruptura-trigger {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.malha-ruptura-roll {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 8px;
+  margin: 8px 0;
+}
+
+.malha-d100-result {
+  font-size: 20px;
+  color: #d9a0ff;
+  text-shadow: 0 0 8px rgba(142, 68, 173, 0.5);
+}
+
+.malha-ruptura-effect {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 0 6px 6px 0;
+  padding: 10px 12px;
+  margin: 8px 0;
+}
+
+.malha-ruptura-tier {
+  font-size: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.malha-ruptura-title {
+  font-size: 14px;
+  margin: 4px 0;
+  color: #fff;
+  border: none;
+}
+
+.malha-ruptura-desc {
+  font-size: 12px !important;
+  color: #c0c0d0;
+  line-height: 1.6;
+}
+
+/* ─── Severity Bar ──────────────────────────────────────────────── */
+.malha-severity-bar {
+  display: flex;
+  gap: 2px;
+  margin-top: 8px;
+}
+
+.malha-severity-segment {
+  flex: 1;
+  text-align: center;
+  padding: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.malha-sev-1.active {
+  background: #4a90d9;
+  color: #fff;
+}
+.malha-sev-2.active {
+  background: #e6a817;
+  color: #fff;
+}
+.malha-sev-3.active {
+  background: #d94a4a;
+  color: #fff;
+}
+.malha-sev-4.active {
+  background: #7b2d8e;
+  color: #fff;
+}
+.malha-sev-5.active {
+  background: #1a1a2e;
+  color: #e74c3c;
+  border: 1px solid #e74c3c;
+}
+
+/* ─── Purge Card ────────────────────────────────────────────────── */
+.malha-purge {
+  border-color: #3498db;
+}
+
+.malha-corruption-change {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 10px 0;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.malha-corruption-old {
+  color: #e74c3c;
+}
+
+.malha-corruption-arrow {
+  color: #a0a0b0;
+  font-size: 16px;
+}
+
+.malha-corruption-new {
+  color: #27ae60;
+}
+
+/* ─── Cantrip Card ──────────────────────────────────────────────── */
+.malha-cantrip {
+  border-color: #3d8a5a;
+}
+
+/* ─── Animations ────────────────────────────────────────────────── */
+@keyframes malha-ruptura-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 5px rgba(142, 68, 173, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(142, 68, 173, 0.6);
+  }
+}
+
+/* ─── Corruption Bar UI (Sheet) ─────────────────────────────────── */
+.malha-arcana-corruption-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid #4a3875;
+  border-radius: 4px;
+  padding: 6px;
+  margin-bottom: 8px;
+}
+
+.ma-bar-container {
+  flex: 1;
+  background: #2a2a35;
+  height: 20px;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #111;
+}
+
+.ma-bar-fill {
+  background: linear-gradient(90deg, #e67e22, #e74c3c);
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.ma-bar-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px #000;
+  white-space: nowrap;
+}
+
+.ma-purge-btn {
+  background: rgba(142, 68, 173, 0.2);
+  border: 1px solid #8e44ad;
+  border-radius: 4px;
+  padding: 4px 8px;
+  color: #d9a0ff;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ma-purge-btn:hover {
+  background: rgba(142, 68, 173, 0.5);
+  color: #fff;
+  box-shadow: 0 0 5px #8e44ad;
+}
