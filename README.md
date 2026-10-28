@@ -1,92 +1,78 @@
-# Malha Arcana — Sistema Alternativo de Magia para D&D 5e
+# 🌀 Malha Arcana — Sistema Alternativo de Magia
 
-Um módulo para [Foundry VTT](https://foundryvtt.com/) que substitui os espaços de magia tradicionais do D&D 5e por um sistema de conjuração baseado em testes, com mecânicas de **Corrupção**, **Ruptura Arcana** e **Dano de Rebote**.
+[![Foundry VTT v14](https://img.shields.io/badge/Foundry-v14.369-orange.svg)](https://foundryvtt.com)
+[![D&D 5e v6](https://img.shields.io/badge/D%26D%205e-6.0.6+-blue.svg)](https://github.com/foundryvtt/dnd5e)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## Mecânicas do Sistema
+Substitui os espaços de magia tradicionais do D&D 5e por um sistema de conjuração volátil e perigoso baseado em testes de habilidade, introduzindo mecânicas de **Corrupção Arcana**, **Ruptura Cósmica (1d100)** e **Dano de Rebote**.
 
-### 1. O Fim dos Espaços de Magia
+---
 
-O conjurador "puxa" a energia da malha arcana na força bruta:
+## ⚡ Mecânicas Principais
 
-- **Teste Base**: `1d20 + Modificador de Conjuração + Proficiência`
-- **CD para manifestar**: `10 + Nível da Magia`
-- O jogador pode fazer **Upcast** livremente, mas a CD e os riscos aumentam
+### 1. Teste de Conjuração (Malha Arcana)
+- Conjuradores não dependem de espaços de magia limitados. Ao conjurar uma magia de 1º círculo ou superior, o conjurador faz um teste:
+  $$\text{1d20} + \text{Modificador de Atributo} + \text{Bônus de Proficiência}$$
+- **CD para manifestar**: $10 + \text{Nível da Magia}$ (suporta upcasting).
+- **Magias de Ataque**: A própria jogada de ataque serve simultaneamente para acertar a CA do alvo e vencer a CD da Malha.
+- **Truques (Círculo 0)**: São estáveis, seguros e não exigem teste nem acumulam Corrupção.
 
-### 2. Rolagem Unificada
+### 2. Corrupção Arcana (1 a 20)
+- A cada magia de círculo 1+ conjurada, o conjurador acumula **+1 ponto de Corrupção** (inicia em 1 e vai até 20).
+- Visível diretamente na ficha do personagem com barra de progresso temática.
+- **Edição Rápida**: Mestres e jogadores podem editar o número diretamente na ficha.
 
-- **Magias de Ataque**: A rolagem de ataque determina simultaneamente se superou a CD da magia E a CA do alvo
-- **Magias de Área (Salvaguarda)**: Teste de Habilidade de Conjuração para manifestar; se passar, alvos fazem seus testes de resistência normalmente
+### 3. Ruptura Arcana (Tabela de 1d100)
+- Se o valor **natural** do dado no d20 for **menor ou igual à Corrupção atual**, a magia se rompe e desencadeia uma **Ruptura Arcana** imediata!
+- Uma tabela com 22 efeitos cósmicos dividida em 5 Tiers:
+  - **Tier 1 (01–25)**: *Anomalias Sensoriais* (distorções visuais, eco temporal).
+  - **Tier 2 (26–50)**: *Debilitações Táticas* (cegueira, lentidão gravitacional).
+  - **Tier 3 (51–75)**: *Explosões Arcanas* (detonações de dano de força e atordoamento).
+  - **Tier 4 (76–95)**: *Invasões Cósmicas* (fendas planares e aberrações).
+  - **Tier 5 (96–100)**: *Colapso Total* (coma mágico, apagamento e possessão).
+- Acompanha compêndio oficial com a `RollTable` inclusa no módulo.
 
-### 3. Falha Comum e Dano de Rebote
+### 4. Dano de Rebote (Backlash)
+- Falhar no teste da Malha sem sofrer Ruptura faz a energia excedente explodir no corpo do conjurador:
+  - **1º a 3º Círculo**: 1d4 de dano irredutível por círculo.
+  - **4º a 6º Círculo**: 1d6 de dano irredutível por círculo.
+  - **7º a 9º Círculo**: 1d8 de dano irredutível por círculo.
+  *(Os tipos de dados são configuráveis nas opções do módulo).*
 
-Se a rolagem total não atingir a CD, o feitiço pifa e causa **Dano de Força ou Psíquico irredutível**:
+### 5. Purgar a Malha (🧘)
+- Um conjurador pode gastar sua **Ação** em combate para acalmar a própria aura mágica, reduzindo **-1 de Corrupção**.
+- A ação é adicionada automaticamente como característica na ficha e possui botão direto na aba de magias.
 
-| Patamar | Dano |
-|---|---|
-| 1º a 3º Círculo | 1d4 por nível da magia |
-| 4º a 6º Círculo | 1d6 por nível da magia |
-| 7º a 9º Círculo | 1d8 por nível da magia |
+---
 
-- **Truques são seguros**: falhar gasta a ação mas não causa dano de rebote
-- **Rejeição temática**: sabor narrativo ligado à classe do conjurador
+## 📦 Instalação
 
-### 4. Margem de Corrupção
+### Instalação no Foundry VTT:
+1. No menu principal do Foundry VTT, vá em **Add-on Modules** e clique em **Install Module**.
+2. No campo **Manifest URL**, cole o link abaixo e clique em **Install**:
+   ```
+   https://github.com/korujasedex123/malha-arcana/releases/latest/download/module.json
+   ```
+3. Ative o módulo nas configurações do seu mundo.
 
-- Novo recurso na ficha: **Corrupção** (1–20)
-- Aumenta em +1 a cada magia de 1º+ círculo conjurada
-- Se o **dado puro** (d20 sem modificadores) ≤ Corrupção atual → **Ruptura Arcana!**
+---
 
-### 5. Ruptura Arcana (Tabela 1d100)
+## ⚙️ Opções Configuráveis
+No menu *Configurar Opções → Malha Arcana*, você pode ajustar:
+- **Substituir Espaços de Magia**: Desativa o consumo de spell slots do sistema.
+- **Dado de Rebote (Tier 1, 2 e 3)**: Seletores suspensos (d2, d4, d6, d8, d10, d12, d20).
+- **Tipo de Dano de Rebote**: Dano de Força ou Psíquico.
+- **Aplicar a NPCs**: Se os monstros e conjuradores inimigos também sofrem com a Malha.
+- **Tabela de Ruptura Customizada**: Substitua a tabela padrão por qualquer outra RollTable do seu mundo ou compêndio.
 
-| Faixa | Efeito |
-|---|---|
-| 01–25 | Anomalias Sensoriais |
-| 26–50 | Debilitações Táticas (cegueira, silêncio) |
-| 51–75 | Explosões e danos em área |
-| 76–95 | Invasões Cósmicas, invocações hostis |
-| 96–100 | Colapso Total (0 PV, perda de magias, possessão) |
+---
 
-### 6. Ação: Purgar a Malha
+## 🎲 Compatibilidade
+- **Foundry VTT**: Versão 14+ (compatível com ApplicationV2 e ThemeV2).
+- **Sistema**: D&D 5e v6.0.0 ou superior.
+- **Dice So Nice!**: Suporte completo nativo com animação 3D para todas as rolagens.
 
-- O jogador sacrifica sua Ação no combate para reduzir a Corrupção em -1
-- Distribuída como Característica de Classe ou usada via Macro
+---
 
-## Instalação
-
-1. No Foundry VTT, vá em **Configurações → Módulos → Instalar Módulo**
-2. Cole a URL do `module.json` no campo "URL do Manifesto"
-3. Ative o módulo na sua sessão
-
-## Configuração
-
-### Na Ficha do Personagem
-
-1. Adicione um **Recurso Customizado** chamado **"Corrupção"** com valor inicial 1 e máximo 20
-2. Adicione a característica **"Ação: Purgar a Malha"** ao personagem
-
-### Nas Configurações do Módulo
-
-- **Aplicar a NPCs**: Estende o sistema a NPCs conjuradores
-- **Tipo de Dano de Rebote**: Força ou Psíquico
-- **Sabor Narrativo**: Ativa/desativa texto temático por classe
-- **Auto-aplicar Dano**: Aplica dano de rebote automaticamente ao PV
-- **Auto-incrementar Corrupção**: Aumenta automaticamente a cada conjuração
-
-### Macro: Purgar a Malha
-
-Crie uma macro do tipo Script com o seguinte código:
-
-```javascript
-purgarAMalha();
-```
-
-Ou use: `game.malhaArcana.purgeMacro()`
-
-## Requisitos
-
-- Foundry VTT v10 ou superior
-- Sistema D&D 5e v2.0.0 ou superior
-
-## Licença
-
-[MIT License](LICENSE)
+## 📜 Licença
+Distribuído sob a licença MIT. Consulte [LICENSE](LICENSE) para mais detalhes.

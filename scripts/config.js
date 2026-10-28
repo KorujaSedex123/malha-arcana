@@ -88,6 +88,16 @@ export class MalhaArcanaConfig {
       default: true,
     });
 
+        const diceChoices = {
+      2: "d2",
+      4: "d4",
+      6: "d6",
+      8: "d8",
+      10: "d10",
+      12: "d12",
+      20: "d20",
+    };
+
     // Backlash Die Tier 1
     game.settings.register(MODULE_ID, "backlashDieTier1", {
       name: game.i18n.localize("malha-arcana.settings.backlashDieTier1.name"),
@@ -96,6 +106,7 @@ export class MalhaArcanaConfig {
       config: true,
       type: Number,
       default: 4,
+      choices: diceChoices,
     });
 
     // Backlash Die Tier 2
@@ -106,6 +117,7 @@ export class MalhaArcanaConfig {
       config: true,
       type: Number,
       default: 6,
+      choices: diceChoices,
     });
 
     // Backlash Die Tier 3
@@ -116,6 +128,17 @@ export class MalhaArcanaConfig {
       config: true,
       type: Number,
       default: 8,
+      choices: diceChoices,
+    });
+
+    // Disable spell slot consumption
+    game.settings.register(MODULE_ID, "disableSpellSlots", {
+      name: "Substituir Espaços de Magia (Malha Arcana)",
+      hint: "Impede o consumo de espaços de magia ao conjurar, tornando a magia 100% dependente do teste da Malha.",
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: true,
     });
 
     // Custom Ruptura Table

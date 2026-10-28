@@ -3,6 +3,8 @@
  *
  * Substitui espaços de magia por testes de conjuração com CD = 10 + Nível da Magia.
  * Inclui mecânicas de Corrupção, Ruptura Arcana e Dano de Rebote.
+ *
+ * Alvo: Foundry VTT v14 + dnd5e 6.x (hooks baseados em Atividades e fichas AppV2).
  */
 
 import { MalhaArcanaConfig } from "./config.js";
@@ -10,10 +12,21 @@ import { MalhaArcanaRoller } from "./roller.js";
 import { RupturaArcana } from "./ruptura.js";
 import { ChatMessages } from "./chat-messages.js";
 import { CorruptionTracker } from "./corruption.js";
+import "./lib/lib.js";
 
 const MODULE_ID = "malha-arcana";
+const PURGE_NAMES = ["Ação: Purgar a Malha", "Purgar a Malha"];
+const PURGE_ACTIVITY_ID = "malhaPurgar00001";
 
-Hooks.once("init", async function () {
+/** Ataques de magia aguardando a rolagem de ataque. Chave: `${actor.id}.${item.id}` */
+const pendingSpellAttacks = new Map();
+
+const _pendingKey = (actor, item) => `${actor.id}.${item.id}`;
+const _isPurgeItem = (item) => PURGE_NAMES.includes(item?.name);
+const _appliesTo = (actor) =>
+  actor.type === "character" || game.settings.get(MODULE_ID, "applyToNPCs");
+
+Hooks.once("init", function () {
   console.log(`${MODULE_ID} | Inicializando Malha Arcana — Sistema Alternativo de Magia`);
 
   // Register module settings
@@ -32,315 +45,283 @@ Hooks.once("init", async function () {
 Hooks.once("ready", async function () {
   console.log(`${MODULE_ID} | Malha Arcana pronta.`);
 
-  // Notify only GMs on first activation
+  // Boas-vindas na primeira inicialização (estilo Dice So Nice)
   if (game.user.isGM) {
-    const firstRun = !game.settings.get(MODULE_ID, "hasRunBefore");
-    if (firstRun) {
-      ui.notifications.info(
-        game.i18n.localize("malha-arcana.firstrun")
-      );
-      game.settings.set(MODULE_ID, "hasRunBefore", true);
+    const hasRun = game.settings.get(MODULE_ID, "hasRunBefore");
+    if (!hasRun) {
+      await _showWelcomeDialog();
+      await game.settings.set(MODULE_ID, "hasRunBefore", true);
     }
   }
 });
 
+/**
+ * Exibe um diálogo temático de boas-vindas e introdução às mecânicas da Malha Arcana.
+ */
+async function _showWelcomeDialog() {
+  const content = `
+    <div class="malha-arcana-welcome">
+      <div style="text-align: center; margin-bottom: 12px;">
+        <h2 style="margin: 0; color: #a855f7; border: none; font-size: 20px;">🌀 Bem-vindo à Malha Arcana!</h2>
+        <p style="font-size: 12px; color: #aaa; margin: 4px 0;">Sistema Alternativo de Magia para D&D 5e</p>
+      </div>
+      <p style="font-size: 13px; line-height: 1.5;">
+        A magia em sua campanha agora é volátil e viva! Em vez de consumir espaços de magia fixos, toda conjuração exige canalizar diretamente a <strong>Malha Cósmica</strong>.
+      </p>
+      <div style="background: rgba(0,0,0,0.3); border-left: 3px solid #a855f7; padding: 8px 12px; margin: 10px 0; font-size: 12px;">
+        <ul style="margin: 0; padding-left: 18px; line-height: 1.6;">
+          <li><strong>Teste da Malha:</strong> Ao conjurar uma magia de 1º círculo ou superior, role <em>1d20 + Modificador + Proficiência</em> contra <strong>CD 10 + Nível da Magia</strong>.</li>
+          <li><strong>Corrupção Arcana:</strong> Cada magia de 1º círculo ou superior aumenta sua Corrupção em +1 (inicia em 1 e vai até 20).</li>
+          <li><strong>Ruptura Arcana:</strong> Se o d20 natural for <em>menor ou igual</em> à sua Corrupção, a Malha se rompe e desencadeia um desastre da <strong>Tabela de 1d100</strong>!</li>
+          <li><strong>Dano de Rebote:</strong> Falhar no teste sem Ruptura causa dano irredutível ao conjurador.</li>
+          <li><strong>Purgar a Malha:</strong> Use o botão 🧘 na aba de magias da ficha para gastar sua Ação e reduzir 1 ponto de Corrupção.</li>
+        </ul>
+      </div>
+      <p style="font-size: 11px; color: #888; text-align: center; margin-top: 8px;">
+        Dica: Você pode personalizar danos, tabelas customizadas e comportamento de espaços nas <em>Configurações do Módulo</em>.
+      </p>
+    </div>
+  `;
+
+  new Dialog({
+    title: "Malha Arcana — Boas-Vindas",
+    content,
+    buttons: {
+      ok: {
+        icon: '<i class="fas fa-check"></i>',
+        label: "Entendido & Começar!",
+      },
+    },
+    default: "ok",
+  }).render(true);
+}
+
+/**
+ * Executa a purga de corrupção e envia a mensagem de chat.
+ * @param {Actor} actor
+ */
+async function _purge(actor) {
+  const oldCorruption = CorruptionTracker.getCorruption(actor);
+  if (oldCorruption <= 0) {
+    ui.notifications.info(game.i18n.format("malha-arcana.purge.notification.none", { name: actor.name }));
+    return;
+  }
+  const newCorruption = await CorruptionTracker.purgeCorruption(actor);
+  await ChatMessages.sendPurgeMessage(actor, oldCorruption, newCorruption);
+}
+
 // ─────────────────────────────────────────────────────────────────
-// Hook: Intercept spell usage from the dnd5e system
-//
-// We use dnd5e.preUseItem to tag leveled spells, and dnd5e.useItem
-// to run the actual check after the system processes the spell.
-//
-// For dnd5e v3+ / v4+ (Activity-based), these hooks may need to be
-// adapted to dnd5e.preUseActivity / dnd5e.useActivity.
+// dnd5e 6.x — Hooks de Atividade
+//   dnd5e.preUseActivity(activity, usageConfig, dialogConfig, messageConfig)
+//   dnd5e.postUseActivity(activity, usageConfig, results)
 // ─────────────────────────────────────────────────────────────────
-Hooks.on("dnd5e.preUseItem", (item, config, options) => {
-  const actor = item.actor;
+Hooks.on("dnd5e.preActivityConsumption", (activity, usageConfig, messageConfig) => {
+  const item = activity?.item;
+  const actor = item?.actor;
+  if (!actor || item?.type !== "spell" || !_appliesTo(actor)) return;
+
+  if (game.settings.get(MODULE_ID, "disableSpellSlots")) {
+    if (usageConfig?.spell) {
+      usageConfig.spell.slot = false;
+      usageConfig.spell.consume = false;
+    }
+  }
+});
+
+Hooks.on("dnd5e.preUseActivity", (activity, usageConfig) => {
+  const item = activity.item;
+  const actor = item?.actor;
   if (!actor) return true;
 
   // Intercept "Ação: Purgar a Malha" feature
-  if (item.name === "Ação: Purgar a Malha" || item.name === "Purgar a Malha") {
-    const oldCorruption = CorruptionTracker.getCorruption(actor);
-    if (oldCorruption <= 0) {
-      ui.notifications.info(game.i18n.format("malha-arcana.purge.notification.none", { name: actor.name }));
-    } else {
-      CorruptionTracker.purgeCorruption(actor).then(newCorruption => {
-        ChatMessages.sendPurgeMessage(actor, oldCorruption, newCorruption);
-      });
-    }
+  if (_isPurgeItem(item)) {
+    _purge(actor);
     return false; // blocks default execution
   }
-
-  // Only intercept spells
-  if (item.type !== "spell") return true;
-
-  // Only apply to player-owned characters (not NPCs, unless setting enabled)
-  if (actor.type !== "character" && !game.settings.get(MODULE_ID, "applyToNPCs")) {
-    return true;
-  }
-
-  const spellLevel = item.system?.level ?? 0;
-
-  // Cantrips (level 0) are safe — let them proceed normally
-  if (spellLevel === 0) return true;
-
-  // For leveled spells, store context on options for the useItem hook.
-  options.malhaArcana = {
-    spellLevel,
-    spellName: item.name,
-    actorId: actor.id,
-    itemId: item.id,
-  };
 
   return true;
 });
 
-// ─────────────────────────────────────────────────────────────────
-const pendingSpellAttacks = new Map();
-
-// Hook: After a spell is used — run the Malha Arcana check
-// ─────────────────────────────────────────────────────────────────
-Hooks.on("dnd5e.useItem", async (item, config, options) => {
-  const actor = item.actor;
+Hooks.on("dnd5e.postUseActivity", async (activity, usageConfig) => {
+  const item = activity.item;
+  const actor = item?.actor;
   if (!actor) return;
-
   if (item.type !== "spell") return;
-
-  if (actor.type !== "character" && !game.settings.get(MODULE_ID, "applyToNPCs")) return;
+  if (!_appliesTo(actor)) return;
 
   const spellLevel = item.system?.level ?? 0;
 
-  // Cantrips — safe, just post a flavor message
+  // Cantrips — safe, just post a flavor message (once per use)
   if (spellLevel === 0) {
     await ChatMessages.sendCantripSafe(actor, item);
     return;
   }
 
-  // Determine the cast level (upcast support)
-  const castLevel = _resolveSlotLevel(config, options, spellLevel);
-  const effectiveCastLevel = Math.max(spellLevel, castLevel);
+  const castLevel = Math.max(spellLevel, _resolveCastLevel(actor, usageConfig, spellLevel));
 
-  // Determine if this is an attack spell or a save spell
-  const isAttackSpell = item.system?.actionType === "msak" || item.system?.actionType === "rsak";
-  const isSaveSpell = !!(item.system?.save?.ability && item.system?.save?.ability !== "");
+  const isAttackSpell = activity.type === "attack";
+  const isSaveSpell = activity.type === "save";
 
-  // If it's an attack spell, we only set a flag to process on attack roll
+  // Attack spells: the attack roll itself acts as the check
   if (isAttackSpell) {
-    pendingSpellAttacks.set(item.id, {
-      castLevel: effectiveCastLevel,
-      lastTurnProcessed: null
+    pendingSpellAttacks.set(_pendingKey(actor, item), {
+      castLevel,
+      lastTurnProcessed: null,
     });
-    // Let the player know to roll the attack
     ui.notifications.info(game.i18n.format("malha-arcana.roll.attackPrompt", { name: item.name }));
     return;
   }
 
-  // Run the Malha Arcana check for save/utility spells
-  await MalhaArcanaRoller.executeCheck(actor, item, effectiveCastLevel, isAttackSpell, isSaveSpell);
-});
-
-// ─────────────────────────────────────────────────────────────────
-// Hook: When an attack roll is made — process Malha Arcana for attack spells
-// ─────────────────────────────────────────────────────────────────
-Hooks.on("dnd5e.rollAttack", async (itemOrActivity, roll, ...args) => {
-  const isV4 = itemOrActivity.item !== undefined;
-  const item = isV4 ? itemOrActivity.item : itemOrActivity;
-  if (!item) return;
-
-  if (item.type !== "spell") return;
-  const actor = item.actor;
-  if (!actor || (actor.type !== "character" && !game.settings.get(MODULE_ID, "applyToNPCs"))) return;
-
-  const spellLevel = item.system?.level ?? 0;
-  if (spellLevel === 0) return; // Cantrips are safe
-  
-  if (!pendingSpellAttacks.has(item.id)) return;
-  const pending = pendingSpellAttacks.get(item.id);
-
-  if (game.settings.get(MODULE_ID, "onlyFirstAttackCheck")) {
-    const currentTurnId = game.combat ? `${game.combat.id}-${game.combat.round}-${game.combat.turn}` : "out-of-combat";
-    if (currentTurnId === "out-of-combat") {
-      if (pending.lastTurnProcessed === "out-of-combat") return;
-      pending.lastTurnProcessed = "out-of-combat";
-    } else {
-      if (pending.lastTurnProcessed === currentTurnId) return;
-      pending.lastTurnProcessed = currentTurnId;
-    }
-  }
-
-  // Process the attack roll as the Malha Arcana check
-  await MalhaArcanaRoller.executeAttackCheck(actor, item, roll, pending.castLevel);
+  await MalhaArcanaRoller.executeCheck(actor, item, castLevel, isAttackSpell, isSaveSpell);
 });
 
 /**
- * Resolve the slot level used for casting across different dnd5e versions.
- * @param {object} config - Hook config argument
- * @param {object} options - Hook options argument
- * @param {number} spellLevel - Base spell level as fallback
- * @returns {number} The resolved slot level
+ * Resolve o nível de conjuração a partir do usageConfig (dnd5e 6.x).
+ * `usageConfig.spell.slot` é uma chave como "spell3" ou "pact".
+ * @param {Actor} actor
+ * @param {object} usageConfig
+ * @param {number} spellLevel - Nível base da magia (fallback)
+ * @returns {number}
  */
-function _resolveSlotLevel(config, options, spellLevel) {
-  // dnd5e 2.x: config.consumeSpellLevel (string like "3")
-  if (config?.consumeSpellLevel != null) {
-    const parsed = parseInt(config.consumeSpellLevel, 10);
-    if (!isNaN(parsed)) return parsed;
+function _resolveCastLevel(actor, usageConfig, spellLevel) {
+  const slotKey = usageConfig?.spell?.slot;
+  if (slotKey) {
+    const level = actor.system?.spells?.[slotKey]?.level;
+    if (Number.isFinite(level) && level > 0) return level;
+    const match = /^spell(\d+)$/.exec(slotKey);
+    if (match) return parseInt(match[1], 10);
   }
-  // dnd5e 2.x/3.x: config.slotLevel
-  if (config?.slotLevel != null) {
-    const parsed = typeof config.slotLevel === "number" ? config.slotLevel : parseInt(config.slotLevel, 10);
-    if (!isNaN(parsed)) return parsed;
-  }
-  // Fallback: options.slotLevel
-  if (options?.slotLevel != null) {
-    const parsed = typeof options.slotLevel === "number" ? options.slotLevel : parseInt(options.slotLevel, 10);
-    if (!isNaN(parsed)) return parsed;
-  }
+  if (Number.isFinite(usageConfig?.scaling)) return spellLevel + usageConfig.scaling;
   return spellLevel;
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Task 1: UI Injection on Actor Sheet
+// dnd5e.rollAttack(rolls, { subject, ammoUpdate })
+// Processa o ataque de magia como o teste da Malha Arcana
 // ─────────────────────────────────────────────────────────────────
-Hooks.on("renderActorSheet5eCharacter", (app, html, data) => {
-  const actor = app.actor;
+Hooks.on("dnd5e.rollAttack", async (rolls, data) => {
+  const activity = data?.subject;
+  const item = activity?.item;
+  if (!item || item.type !== "spell") return;
+
+  const actor = item.actor;
+  if (!actor || !_appliesTo(actor)) return;
+
+  if ((item.system?.level ?? 0) === 0) return; // Cantrips are safe
+
+  const key = _pendingKey(actor, item);
+  const pending = pendingSpellAttacks.get(key);
+  if (!pending) return;
+
+  const roll = rolls?.[0];
+  if (!roll) return;
+
+  if (game.settings.get(MODULE_ID, "onlyFirstAttackCheck")) {
+    const currentTurnId = game.combat
+      ? `${game.combat.id}-${game.combat.round}-${game.combat.turn}`
+      : "out-of-combat";
+    if (pending.lastTurnProcessed === currentTurnId) return;
+    pending.lastTurnProcessed = currentTurnId;
+  } else {
+    // Sem a opção, cada conjuração consome um único teste
+    pendingSpellAttacks.delete(key);
+  }
+
+  await MalhaArcanaRoller.executeAttackCheck(actor, item, roll, pending.castLevel);
+});
+
+// ─────────────────────────────────────────────────────────────────
+// UI Injection on Actor Sheet (dnd5e 6.x — AppV2, html é HTMLElement)
+// ─────────────────────────────────────────────────────────────────
+Hooks.on("renderCharacterActorSheet", (app, html) => {
+  const actor = app.actor ?? app.document;
   if (!actor) return;
-  
-  const spellbookTab = html.find('.tab.spellbook');
-  if (!spellbookTab.length) return;
+
+  const spellbookTab = html.querySelector('.tab[data-tab="spells"]');
+  if (!spellbookTab) return;
+
+  // Evita duplicar a barra em re-renders parciais
+  spellbookTab.querySelector(".malha-arcana-corruption-bar")?.remove();
 
   const corruption = CorruptionTracker.getCorruption(actor);
   const maxCorruption = 20;
 
-  const uiHtml = `
-    <div class="malha-arcana-corruption-bar">
+  const isEditMode = !!app.isEditable;
+  const bar = document.createElement("div");
+  bar.className = "malha-arcana-corruption-bar";
+  
+  if (isEditMode) {
+    bar.innerHTML = `
+      <div class="ma-bar-container">
+        <div class="ma-bar-fill" style="width: ${(corruption / maxCorruption) * 100}%;"></div>
+        <div class="ma-bar-text-edit">
+          <span>Corrupção:</span>
+          <input type="number" class="ma-corruption-input" min="0" max="20" value="${corruption}" title="Editar valor da Corrupção">
+          <span>/ ${maxCorruption}</span>
+        </div>
+      </div>
+      <a class="ma-purge-btn" title="Purgar a Malha"><i class="fas fa-om"></i> 🧘</a>
+    `;
+    const input = bar.querySelector(".ma-corruption-input");
+    input.addEventListener("change", async (ev) => {
+      const val = parseInt(ev.target.value, 10);
+      if (!isNaN(val)) {
+        await CorruptionTracker.setCorruption(actor, val);
+        ui.notifications.info(`Corrupção de ${actor.name} atualizada para ${val}.`);
+      }
+    });
+  } else {
+    bar.innerHTML = `
       <div class="ma-bar-container">
         <div class="ma-bar-fill" style="width: ${(corruption / maxCorruption) * 100}%;"></div>
         <span class="ma-bar-text">Corrupção Atual: ${corruption}/${maxCorruption}</span>
       </div>
       <a class="ma-purge-btn" title="Purgar a Malha"><i class="fas fa-om"></i> 🧘</a>
-    </div>
-  `;
+    `;
+  }
 
-  spellbookTab.prepend(uiHtml);
+  spellbookTab.prepend(bar);
 
-  html.find('.ma-purge-btn').click(async (ev) => {
+  bar.querySelector(".ma-purge-btn").addEventListener("click", async (ev) => {
     ev.preventDefault();
-    const featName1 = "Ação: Purgar a Malha";
-    const featName2 = "Purgar a Malha";
-    const feat = actor.items.find(i => i.type === "feat" && (i.name === featName1 || i.name === featName2));
-
-    if (feat) {
+    const feat = actor.items.find((i) => i.type === "feat" && _isPurgeItem(i));
+    if (feat?.system?.activities?.size) {
       feat.use();
     } else {
-      if (corruption <= 0) {
-        ui.notifications.info(game.i18n.format("malha-arcana.purge.notification.none", { name: actor.name }));
-      } else {
-        CorruptionTracker.purgeCorruption(actor).then(newCorruption => {
-          ChatMessages.sendPurgeMessage(actor, corruption, newCorruption);
-        });
-      }
+      await _purge(actor);
     }
   });
 });
 
 // ─────────────────────────────────────────────────────────────────
-// Task 4: Auto-add Purge Feat
+// Auto-add Purge Feat para classes conjuradoras
 // ─────────────────────────────────────────────────────────────────
 Hooks.on("createItem", async (item, options, userId) => {
   if (game.user.id !== userId) return;
   if (!item.parent || item.parent.documentName !== "Actor") return;
-  
+
   const actor = item.parent;
-  if (item.type === "class" && item.system?.spellcasting?.progression) {
-    if (item.system.spellcasting.progression !== "none") {
-      const featName1 = "Ação: Purgar a Malha";
-      const featName2 = "Purgar a Malha";
-      const hasFeat = actor.items.some(i => i.type === "feat" && (i.name === featName1 || i.name === featName2));
-      
-      if (!hasFeat) {
-        await Item.create({
-          name: "Ação: Purgar a Malha",
-          type: "feat",
-          img: "icons/magic/light/explosion-star-glow-silhouette.webp",
-          system: {
-            description: { value: "Uma ação para purgar a corrupção da Malha Arcana." },
-            activation: { type: "action", cost: 1 }
-          }
-        }, { parent: actor });
-        ui.notifications.info(`Ação "Purgar a Malha" adicionada automaticamente a ${actor.name}.`);
-      }
-    }
-  }
+  if (item.type !== "class") return;
+  const progression = item.system?.spellcasting?.progression;
+  if (!progression || progression === "none") return;
+
+  const hasFeat = actor.items.some((i) => i.type === "feat" && _isPurgeItem(i));
+  if (hasFeat) return;
+
+  await Item.create({
+    name: PURGE_NAMES[0],
+    type: "feat",
+    img: "icons/magic/light/explosion-star-glow-silhouette.webp",
+    system: {
+      description: { value: "Uma ação para purgar a corrupção da Malha Arcana." },
+      activities: {
+        [PURGE_ACTIVITY_ID]: {
+          _id: PURGE_ACTIVITY_ID,
+          type: "utility",
+          activation: { type: "action", value: 1 },
+        },
+      },
+    },
+  }, { parent: actor });
+  ui.notifications.info(`Ação "Purgar a Malha" adicionada automaticamente a ${actor.name}.`);
 });
-
-// ─────────────────────────────────────────────────────────────────
-// Task 2: dnd5e v4+ Activity Hooks
-// ─────────────────────────────────────────────────────────────────
-Hooks.on("dnd5e.preUseActivity", (activity, usageConfig, dialogConfig, messageConfig) => {
-  const item = activity.item;
-  if (!item) return true;
-  const actor = item.actor;
-  if (!actor) return true;
-
-  // Intercept "Ação: Purgar a Malha" feature
-  if (item.name === "Ação: Purgar a Malha" || item.name === "Purgar a Malha") {
-    const oldCorruption = CorruptionTracker.getCorruption(actor);
-    if (oldCorruption <= 0) {
-      ui.notifications.info(game.i18n.format("malha-arcana.purge.notification.none", { name: actor.name }));
-    } else {
-      CorruptionTracker.purgeCorruption(actor).then(newCorruption => {
-        ChatMessages.sendPurgeMessage(actor, oldCorruption, newCorruption);
-      });
-    }
-    return false; // blocks default execution
-  }
-
-  if (item.type !== "spell") return true;
-  if (actor.type !== "character" && !game.settings.get(MODULE_ID, "applyToNPCs")) return true;
-
-  const spellLevel = item.system?.level ?? 0;
-  if (spellLevel === 0) return true;
-
-  return true;
-});
-
-Hooks.on("dnd5e.postUseActivity", async (activity, usageConfig, results) => {
-  const item = activity.item;
-  if (!item) return;
-  const actor = item.actor;
-  if (!actor) return;
-
-  if (item.type !== "spell") return;
-  if (actor.type !== "character" && !game.settings.get(MODULE_ID, "applyToNPCs")) return;
-
-  const spellLevel = item.system?.level ?? 0;
-  if (spellLevel === 0) {
-    await ChatMessages.sendCantripSafe(actor, item);
-    return;
-  }
-
-  let castLevel = spellLevel;
-  if (usageConfig?.spell?.slot) {
-    let slotStr = usageConfig.spell.slot;
-    if (slotStr.startsWith("spell")) {
-      castLevel = parseInt(slotStr.replace("spell", ""), 10);
-    } else if (slotStr === "pact") {
-      castLevel = actor.system?.spells?.pact?.level || spellLevel;
-    }
-  }
-  const effectiveCastLevel = Math.max(spellLevel, castLevel);
-
-  const isAttackSpell = activity.type === "attack";
-  const isSaveSpell = activity.type === "save";
-
-  if (isAttackSpell) {
-    pendingSpellAttacks.set(item.id, {
-      castLevel: effectiveCastLevel,
-      lastTurnProcessed: null
-    });
-    ui.notifications.info(game.i18n.format("malha-arcana.roll.attackPrompt", { name: item.name }));
-    return;
-  }
-
-  await MalhaArcanaRoller.executeCheck(actor, item, effectiveCastLevel, isAttackSpell, isSaveSpell);
-});
-

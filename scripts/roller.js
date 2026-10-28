@@ -66,6 +66,7 @@ export class MalhaArcanaRoller {
 
     // Build the result object
     const result = {
+      roll,
       actor,
       item,
       castLevel,

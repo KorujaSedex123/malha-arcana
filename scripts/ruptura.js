@@ -32,7 +32,11 @@ export class RupturaArcana {
     if (effect.statusToApply && actor.toggleStatusEffect) {
       const statuses = Array.isArray(effect.statusToApply) ? effect.statusToApply : [effect.statusToApply];
       for (const status of statuses) {
-        await actor.toggleStatusEffect(status, { active: true });
+        try {
+          await actor.toggleStatusEffect(status, { active: true });
+        } catch (err) {
+          console.warn(`${MODULE_ID} | Não foi possível aplicar o status "${status}":`, err);
+        }
       }
     }
   }
@@ -100,7 +104,7 @@ export class RupturaArcana {
         range: "31-35",
         title: game.i18n.localize("malha-arcana.ruptura.31_35.title"),
         description: game.i18n.localize("malha-arcana.ruptura.31_35.desc"),
-        statusToApply: "silenced",
+        statusToApply: null,
       },
       {
         range: "36-40",

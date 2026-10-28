@@ -3,12 +3,10 @@
   "title": "Malha Arcana — Sistema Alternativo de Magia",
   "description": "Substitui os espaços de magia tradicionais do D&D 5e por um sistema de conjuração baseado em testes, com mecânicas de Corrupção, Ruptura Arcana e Dano de Rebote.",
   "version": "1.0.0",
-  "library": "false",
-  "manifestPlusVersion": "1.2.0",
+  "library": false,
   "compatibility": {
-    "minimum": 10,
-    "verified": 12,
-    "maximum": 13
+    "minimum": 14,
+    "verified": "14.369"
   },
   "authors": [
     {
@@ -22,12 +20,25 @@
         "id": "dnd5e",
         "type": "system",
         "compatibility": {
-          "minimum": "4.0.0"
+          "minimum": "6.0.0"
         }
       }
     ],
     "requires": []
   },
+  "packs": [
+    {
+      "name": "tabelas",
+      "label": "Malha Arcana — Tabelas",
+      "path": "packs/tabelas.db",
+      "type": "RollTable",
+      "system": "dnd5e",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER"
+      }
+    }
+  ],
   "esmodules": [
     "scripts/module.js"
   ],

@@ -13,7 +13,7 @@ export class ChatMessages {
           <h3>🔮 ${game.i18n.localize("malha-arcana.cantrip.title")}</h3>
         </div>
         <div class="malha-body">
-          <p><strong>${actor.name}</strong> ${game.i18n.localize("malha-arcana.cantrip.info")}</p>
+          <p><strong>${foundry.utils.escapeHTML(actor.name)}</strong> ${game.i18n.localize("malha-arcana.cantrip.info")}</p>
         </div>
       </div>
     `;
@@ -28,6 +28,7 @@ export class ChatMessages {
   // ─── Main spellcasting check result ────────────────────────────
   static async sendCheckResult(result) {
     const {
+      roll,
       actor,
       item,
       castLevel,
@@ -84,7 +85,7 @@ export class ChatMessages {
         </div>
         <div class="malha-body">
           <div class="malha-spell-info">
-            <p><strong>${actor.name}</strong> ➔ <strong>${item.name}</strong> (${castLevel})${upcastNote}</p>
+            <p><strong>${foundry.utils.escapeHTML(actor.name)}</strong> ➔ <strong>${foundry.utils.escapeHTML(item.name)}</strong> (${castLevel})${upcastNote}</p>
           </div>
 
           <div class="malha-roll-details">
@@ -116,9 +117,14 @@ export class ChatMessages {
       </div>
     `;
 
+    if (roll && game.dice3d) {
+      await game.dice3d.showForRoll(roll, game.user, true);
+    }
+
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor }),
       content,
+      rolls: roll ? [roll] : [],
       flags: {
         [MODULE_ID]: {
           type: "check",
@@ -164,11 +170,14 @@ export class ChatMessages {
       </div>
     `;
 
+    if (roll && game.dice3d) {
+      await game.dice3d.showForRoll(roll, game.user, true);
+    }
+
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor }),
       content,
       rolls: [roll],
-      type: CONST.CHAT_MESSAGE_TYPES?.ROLL,
       flags: {
         [MODULE_ID]: {
           type: "backlash",
@@ -225,11 +234,14 @@ export class ChatMessages {
       </div>
     `;
 
+    if (roll && game.dice3d) {
+      await game.dice3d.showForRoll(roll, game.user, true);
+    }
+
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor }),
       content,
       rolls: [roll],
-      type: CONST.CHAT_MESSAGE_TYPES?.ROLL,
       flags: {
         [MODULE_ID]: {
           type: "ruptura",

@@ -453,3 +453,31 @@
   color: #fff;
   box-shadow: 0 0 5px #8e44ad;
 }
+
+.ma-bar-text-edit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px #000;
+  white-space: nowrap;
+}
+
+.ma-corruption-input {
+  width: 42px !important;
+  height: 20px !important;
+  padding: 0 4px !important;
+  font-size: 12px !important;
+  font-weight: bold !important;
+  text-align: center !important;
+  color: #ffe066 !important;
+  background: rgba(0, 0, 0, 0.7) !important;
+  border: 1px solid #e67e22 !important;
+  border-radius: 3px !important;
+}
