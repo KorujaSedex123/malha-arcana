@@ -41,8 +41,9 @@ export class CorruptionTracker {
    * @param {Actor} actor
    * @param {number} value
    */
-  static async setCorruption(actor, value) {
+    static async setCorruption(actor, value) {
     const clampedValue = Math.max(0, Math.min(20, value));
+    const previousValue = this.getCorruption(actor);
     const resourceName = game.settings.get(MODULE_ID, "corruptionResourceName");
     const resourceNameLower = resourceName.toLowerCase();
     const resources = actor.system?.resources;
@@ -52,6 +53,7 @@ export class CorruptionTracker {
         const res = resources[key];
         if (res && res.label && res.label.toLowerCase() === resourceNameLower) {
           await actor.update({ [`system.resources.${key}.value`]: clampedValue });
+          this._showTokenFeedback(actor, clampedValue, previousValue);
           return;
         }
       }
@@ -59,6 +61,33 @@ export class CorruptionTracker {
 
     // Fallback: store in flags
     await actor.setFlag(MODULE_ID, "corruption", clampedValue);
+    this._showTokenFeedback(actor, clampedValue, previousValue);
+  }
+
+  /**
+   * Exibe feedback visual no token (Scrolling Text sobre o token no grid)
+   */
+  static _showTokenFeedback(actor, newValue, oldValue) {
+    if (newValue === oldValue) return;
+    const diff = newValue - oldValue;
+    const isGain = diff > 0;
+    const text = isGain ? `+${diff} Corrupção` : `${diff} Corrupção`;
+    const color = isGain ? "#c084fc" : "#4ade80";
+
+    const tokens = actor.getActiveTokens ? actor.getActiveTokens() : [];
+    for (const token of tokens) {
+      if (token && canvas?.interface?.createScrollingText) {
+        canvas.interface.createScrollingText(token.center, text, {
+          anchor: CONST.TEXT_ANCHOR_POINTS?.TOP ?? 0,
+          direction: isGain ? (CONST.TEXT_ANCHOR_DIRECTIONS?.UP ?? 0) : (CONST.TEXT_ANCHOR_DIRECTIONS?.DOWN ?? 1),
+          fontSize: 24,
+          fill: color,
+          stroke: 0x000000,
+          strokeThickness: 4,
+          jitter: 0.2
+        });
+      }
+    }
   }
 
   /**

@@ -481,3 +481,118 @@
   border: 1px solid #e67e22 !important;
   border-radius: 3px !important;
 }
+
+
+/* ─── Corruption Bar Danger Stages ────────────────────────────── */
+.malha-arcana-corruption-bar {
+  cursor: help;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.malha-arcana-corruption-bar.ma-danger-low {
+  border-color: #6366f1;
+}
+.malha-arcana-corruption-bar.ma-danger-low .ma-bar-fill {
+  background: linear-gradient(90deg, #4f46e5, #8b5cf6);
+}
+
+.malha-arcana-corruption-bar.ma-danger-warning {
+  border-color: #f59e0b;
+}
+.malha-arcana-corruption-bar.ma-danger-warning .ma-bar-fill {
+  background: linear-gradient(90deg, #d97706, #f59e0b);
+}
+
+.malha-arcana-corruption-bar.ma-danger-critical {
+  border-color: #ea580c;
+  box-shadow: 0 0 6px rgba(234, 88, 12, 0.4);
+}
+.malha-arcana-corruption-bar.ma-danger-critical .ma-bar-fill {
+  background: linear-gradient(90deg, #ea580c, #ef4444);
+}
+
+.malha-arcana-corruption-bar.ma-danger-catastrophic {
+  border-color: #ef4444;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.7);
+  animation: ma-danger-pulse 1.2s infinite alternate ease-in-out;
+}
+.malha-arcana-corruption-bar.ma-danger-catastrophic .ma-bar-fill {
+  background: linear-gradient(90deg, #b91c1c, #ef4444);
+}
+
+@keyframes ma-danger-pulse {
+  0% { box-shadow: 0 0 4px rgba(239, 68, 68, 0.4); }
+  100% { box-shadow: 0 0 14px rgba(239, 68, 68, 0.9); }
+}
+
+/* ─── Chat Details & 1-Click Buttons ───────────────────────────── */
+.malha-accordion {
+  margin-top: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+.malha-accordion summary {
+  font-size: 11px;
+  cursor: pointer;
+  color: #c084fc;
+  font-weight: bold;
+}
+.malha-accordion summary:hover {
+  color: #e9d5ff;
+}
+
+.malha-chat-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 6px;
+}
+.malha-chat-btn {
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-weight: bold;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+.malha-btn-backlash {
+  background: rgba(234, 88, 12, 0.25);
+  border: 1px solid #ea580c;
+  color: #fdba74;
+}
+.malha-btn-backlash:hover {
+  background: rgba(234, 88, 12, 0.6);
+  color: #fff;
+  box-shadow: 0 0 8px rgba(234, 88, 12, 0.6);
+}
+
+/* ─── Spell Usage Dialog Risk Preview ──────────────────────────── */
+.malha-dialog-preview {
+  margin: 10px 0;
+  padding: 8px 12px;
+  background: rgba(46, 16, 101, 0.4);
+  border: 1px solid #7e22ce;
+  border-left: 4px solid #a855f7;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.malha-dialog-header {
+  color: #d8b4fe;
+  font-size: 13px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.malha-dialog-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 3px 0;
+  color: #e2e8f0;
+}

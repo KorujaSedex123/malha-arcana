@@ -12,16 +12,17 @@ export class RupturaArcana {
     await roll.evaluate();
     const d100Result = roll.total;
 
-    const customTableName = game.settings.get(MODULE_ID, "customRupturaTable");
-    if (customTableName) {
-      let table = game.tables.getName(customTableName);
-      if (!table && (customTableName.startsWith("Compendium.") || customTableName.startsWith("RollTable."))) {
-        table = await fromUuid(customTableName);
+            const customTableName = game.settings.get(MODULE_ID, "customRupturaTable") || "Ruptura Arcana";
+    let table = game.tables.getName(customTableName);
+    if (!table && (customTableName.startsWith("Compendium.") || customTableName.startsWith("RollTable."))) {
+      table = await fromUuid(customTableName);
+    }
+    if (table) {
+      if (roll && game.dice3d) {
+        await game.dice3d.showForRoll(roll, game.user, true);
       }
-      if (table) {
-        await table.draw({ roll, displayChat: true });
-        return;
-      }
+      await table.draw({ roll, displayChat: true });
+      return;
     }
 
     const effect = this.getEffect(d100Result);

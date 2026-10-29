@@ -45,6 +45,9 @@ Hooks.once("init", function () {
 Hooks.once("ready", async function () {
   console.log(`${MODULE_ID} | Malha Arcana pronta.`);
 
+  // Cria/importa a RollTable para a aba de Tabelas do mundo se o GM ainda não tiver
+  await _ensureWorldRupturaTable();
+
   // Boas-vindas na primeira inicialização (estilo Dice So Nice)
   if (game.user.isGM) {
     const hasRun = game.settings.get(MODULE_ID, "hasRunBefore");
@@ -243,13 +246,32 @@ Hooks.on("renderCharacterActorSheet", (app, html) => {
   // Evita duplicar a barra em re-renders parciais
   spellbookTab.querySelector(".malha-arcana-corruption-bar")?.remove();
 
-  const corruption = CorruptionTracker.getCorruption(actor);
+    const corruption = CorruptionTracker.getCorruption(actor);
   const maxCorruption = 20;
+
+  // Determina o estágio de perigo visual (01-05: Estável, 06-10: Instável, 11-15: Crítico, 16-20: Catastrófico)
+  let dangerClass = "ma-danger-low";
+  let dangerLabel = "Estável";
+  if (corruption >= 16) {
+    dangerClass = "ma-danger-catastrophic";
+    dangerLabel = "Catastrófico";
+  } else if (corruption >= 11) {
+    dangerClass = "ma-danger-critical";
+    dangerLabel = "Crítico";
+  } else if (corruption >= 6) {
+    dangerClass = "ma-danger-warning";
+    dangerLabel = "Instável";
+  }
+
+  const ruptureChance = corruption * 5;
+  const tooltipText = `&lt;strong&gt;Corrupção Arcana: ${corruption}/${maxCorruption}&lt;/strong&gt; (${dangerLabel})&lt;br/&gt;• Risco de Ruptura: d20 ≤ ${corruption} (&lt;strong&gt;${ruptureChance}%&lt;/strong&gt;)&lt;br/&gt;• Purgar: reduz -1 gastando 1 Ação.`;
 
   const isEditMode = !!app.isEditable;
   const bar = document.createElement("div");
-  bar.className = "malha-arcana-corruption-bar";
-  
+  bar.className = `malha-arcana-corruption-bar ${dangerClass}`;
+  bar.setAttribute("data-tooltip", tooltipText);
+  bar.setAttribute("data-tooltip-direction", "UP");
+
   if (isEditMode) {
     bar.innerHTML = `
       <div class="ma-bar-container">
@@ -260,7 +282,7 @@ Hooks.on("renderCharacterActorSheet", (app, html) => {
           <span>/ ${maxCorruption}</span>
         </div>
       </div>
-      <a class="ma-purge-btn" title="Purgar a Malha"><i class="fas fa-om"></i> 🧘</a>
+      <a class="ma-purge-btn" data-tooltip="Gastar Ação para purgar -1 de Corrupção"><i class="fas fa-om"></i> 🧘</a>
     `;
     const input = bar.querySelector(".ma-corruption-input");
     input.addEventListener("change", async (ev) => {
@@ -274,9 +296,9 @@ Hooks.on("renderCharacterActorSheet", (app, html) => {
     bar.innerHTML = `
       <div class="ma-bar-container">
         <div class="ma-bar-fill" style="width: ${(corruption / maxCorruption) * 100}%;"></div>
-        <span class="ma-bar-text">Corrupção Atual: ${corruption}/${maxCorruption}</span>
+        <span class="ma-bar-text">Corrupção Atual: ${corruption}/${maxCorruption} (${dangerLabel})</span>
       </div>
-      <a class="ma-purge-btn" title="Purgar a Malha"><i class="fas fa-om"></i> 🧘</a>
+      <a class="ma-purge-btn" data-tooltip="Gastar Ação para purgar -1 de Corrupção"><i class="fas fa-om"></i> 🧘</a>
     `;
   }
 
@@ -324,4 +346,117 @@ Hooks.on("createItem", async (item, options, userId) => {
     },
   }, { parent: actor });
   ui.notifications.info(`Ação "Purgar a Malha" adicionada automaticamente a ${actor.name}.`);
+});
+
+
+/**
+ * Garante que a RollTable oficial da Ruptura Arcana exista na aba de Tabelas do mundo para o Mestre.
+ */
+async function _ensureWorldRupturaTable() {
+  if (!game.user.isGM) return;
+  const tableName = "Ruptura Arcana";
+  const existing = game.tables.getName(tableName);
+  if (existing) return;
+
+  // Busca do compêndio ou cria diretamente
+  const pack = game.packs.get("malha-arcana.tabelas");
+  if (pack) {
+    const docs = await pack.getDocuments();
+    const tableDoc = docs.find(t => t.name === tableName);
+    if (tableDoc) {
+      await RollTable.create(tableDoc.toObject());
+      console.log("malha-arcana | Tabela 'Ruptura Arcana' importada para a aba de Tabelas do mundo.");
+      return;
+    }
+  }
+
+  // Fallback: constrói a tabela programaticamente se não encontrou no pack
+  const results = [];
+  const keys = ["01_05", "06_10", "11_15", "16_20", "21_25", "26_30", "31_35", "36_40", "41_45", "46_50", "51_55", "56_60", "61_65", "66_70", "71_75", "76_80", "81_85", "86_90", "91_95", "96_97", "98_99", "100"];
+  let counter = 1;
+  for (const k of keys) {
+    const parts = k.split("_");
+    const low = parseInt(parts[0], 10);
+    const high = parts.length > 1 ? parseInt(parts[1], 10) : low;
+    const title = game.i18n.localize(`malha-arcana.ruptura.${k}.title`);
+    const desc = game.i18n.localize(`malha-arcana.ruptura.${k}.desc`);
+    results.push({
+      _id: "res" + String(counter++).padStart(5, "0"),
+      type: 0,
+      text: `<strong>${title}</strong><br/>${desc}`,
+      weight: 1,
+      range: [low, high],
+      drawn: false,
+      img: "icons/magic/chaos/spell-strike-spark-purple.webp"
+    });
+  }
+
+  await RollTable.create({
+    name: tableName,
+    description: "Tabela oficial de Desastres Mágicos (1d100) da Malha Arcana. Edite os resultados ou adicione novos efeitos conforme desejar!",
+    results,
+    formula: "1d100",
+    replacement: true,
+    displayRoll: true,
+    img: "icons/magic/lightning/bolt-strike-blue.webp"
+  });
+  console.log("malha-arcana | Tabela 'Ruptura Arcana' criada na aba de Tabelas do mundo.");
+}
+
+// ─────────────────────────────────────────────────────────────────
+// UI / UX: Prévia de Risco da Malha no Diálogo de Conjuração
+// ─────────────────────────────────────────────────────────────────
+Hooks.on("renderActivityUsageDialog", (dialog, html) => {
+  const activity = dialog.activity;
+  const item = activity?.item;
+  const actor = item?.actor;
+  if (!actor || item?.type !== "spell" || (item.system?.level ?? 0) === 0 || !_appliesTo(actor)) return;
+
+  const currentCorruption = CorruptionTracker.getCorruption(actor);
+  const baseSpellLevel = item.system?.level ?? 1;
+  const baseDC = 10 + baseSpellLevel;
+  const nextCorruption = Math.min(20, currentCorruption + 1);
+  const ruptureChance = nextCorruption * 5;
+
+  const previewBox = document.createElement("div");
+  previewBox.className = "malha-dialog-preview";
+  previewBox.innerHTML = `
+    <div class="malha-dialog-header">
+      <i class="fas fa-meteor"></i> <strong>Risco da Malha Arcana</strong>
+    </div>
+    <div class="malha-dialog-body">
+      <div class="malha-dialog-row">
+        <span>CD da Malha:</span>
+        <strong class="ma-preview-dc">${baseDC} (10 + Nível ${baseSpellLevel})</strong>
+      </div>
+      <div class="malha-dialog-row">
+        <span>Corrupção resultante:</span>
+        <strong>${nextCorruption}/20</strong>
+      </div>
+      <div class="malha-dialog-row" style="color: #f87171;">
+        <span>Risco de Ruptura Cósmica:</span>
+        <strong>d20 ≤ ${nextCorruption} (${ruptureChance}%)</strong>
+      </div>
+    </div>
+  `;
+
+  // Insere antes dos botões de ação do diálogo
+  const form = html.querySelector("form") || html;
+  form.appendChild(previewBox);
+
+  // Se o jogador alterar o slot no diálogo, atualiza a CD dinamicamente
+  const slotSelect = html.querySelector('select[name="spell.slot"]');
+  if (slotSelect) {
+    slotSelect.addEventListener("change", (ev) => {
+      let lvl = baseSpellLevel;
+      const val = ev.target.value;
+      const match = /^spell(\d+)$/.exec(val);
+      if (match) lvl = parseInt(match[1], 10);
+      else if (val === "pact") lvl = actor.system?.spells?.pact?.level || baseSpellLevel;
+
+      const newDC = 10 + lvl;
+      const dcEl = previewBox.querySelector(".ma-preview-dc");
+      if (dcEl) dcEl.textContent = `${newDC} (10 + Nível ${lvl})`;
+    });
+  }
 });
