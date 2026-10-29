@@ -13,6 +13,7 @@ import { RupturaArcana } from "./ruptura.js";
 import { ChatMessages } from "./chat-messages.js";
 import { CorruptionTracker } from "./corruption.js";
 import "./lib/lib.js";
+import { RUPTURA_100_EFFECTS } from "./data/ruptura-effects.js";
 
 const MODULE_ID = "malha-arcana";
 const PURGE_NAMES = ["Ação: Purgar a Malha", "Purgar a Malha"];
@@ -356,51 +357,47 @@ async function _ensureWorldRupturaTable() {
   if (!game.user.isGM) return;
   const tableName = "Ruptura Arcana";
   const existing = game.tables.getName(tableName);
-  if (existing) return;
+  
+  // Se a tabela ja existe com 100 resultados, nada precisa ser feito
+  if (existing && existing.results.size >= 100) return;
 
-  // Busca do compêndio ou cria diretamente
-  const pack = game.packs.get("malha-arcana.tabelas");
-  if (pack) {
-    const docs = await pack.getDocuments();
-    const tableDoc = docs.find(t => t.name === tableName);
-    if (tableDoc) {
-      await RollTable.create(tableDoc.toObject());
-      console.log("malha-arcana | Tabela 'Ruptura Arcana' importada para a aba de Tabelas do mundo.");
-      return;
-    }
-  }
-
-  // Fallback: constrói a tabela programaticamente se não encontrou no pack
-  const results = [];
-  const keys = ["01_05", "06_10", "11_15", "16_20", "21_25", "26_30", "31_35", "36_40", "41_45", "46_50", "51_55", "56_60", "61_65", "66_70", "71_75", "76_80", "81_85", "86_90", "91_95", "96_97", "98_99", "100"];
-  let counter = 1;
-  for (const k of keys) {
-    const parts = k.split("_");
-    const low = parseInt(parts[0], 10);
-    const high = parts.length > 1 ? parseInt(parts[1], 10) : low;
-    const title = game.i18n.localize(`malha-arcana.ruptura.${k}.title`);
-    const desc = game.i18n.localize(`malha-arcana.ruptura.${k}.desc`);
-    results.push({
-      _id: "res" + String(counter++).padStart(5, "0"),
+  // Se ja existe uma tabela antiga com menos de 100 resultados, atualiza para a nova completa de 100
+  if (existing) {
+    console.log("malha-arcana | Atualizando tabela 'Ruptura Arcana' do mundo para os 100 efeitos unicos...");
+    const results = RUPTURA_100_EFFECTS.map(item => ({
       type: 0,
-      text: `<strong>${title}</strong><br/>${desc}`,
+      text: `<strong>${item.title}</strong><br/>${item.description}`,
       weight: 1,
-      range: [low, high],
+      range: [item.roll, item.roll],
       drawn: false,
       img: "icons/magic/chaos/spell-strike-spark-purple.webp"
-    });
+    }));
+    await existing.deleteEmbeddedDocuments("TableResult", existing.results.map(r => r.id));
+    await existing.createEmbeddedDocuments("TableResult", results);
+    return;
   }
+
+  // Se nao existe, cria com os 100 efeitos unicos
+  const results = RUPTURA_100_EFFECTS.map(item => ({
+    _id: "res" + String(item.roll).padStart(5, "0"),
+    type: 0,
+    text: `<strong>${item.title}</strong><br/>${item.description}`,
+    weight: 1,
+    range: [item.roll, item.roll],
+    drawn: false,
+    img: "icons/magic/chaos/spell-strike-spark-purple.webp"
+  }));
 
   await RollTable.create({
     name: tableName,
-    description: "Tabela oficial de Desastres Mágicos (1d100) da Malha Arcana. Edite os resultados ou adicione novos efeitos conforme desejar!",
+    description: "Tabela oficial de Desastres Mágicos (1d100) da Malha Arcana com 100 efeitos únicos (1 a 100). Totalmente editável pelo Mestre!",
     results,
     formula: "1d100",
     replacement: true,
     displayRoll: true,
     img: "icons/magic/lightning/bolt-strike-blue.webp"
   });
-  console.log("malha-arcana | Tabela 'Ruptura Arcana' criada na aba de Tabelas do mundo.");
+  console.log("malha-arcana | Tabela 'Ruptura Arcana' com 100 efeitos únicos criada na aba de Tabelas do mundo.");
 }
 
 // ─────────────────────────────────────────────────────────────────
