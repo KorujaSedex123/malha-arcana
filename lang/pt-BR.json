@@ -12,6 +12,23 @@
   "malha-arcana.settings.autoIncrementCorruption.name": "Incrementar Corrupção Automaticamente",
   "malha-arcana.settings.autoIncrementCorruption.hint": "Se ativado, a Corrupção aumenta em +1 automaticamente ao conjurar magias de 1º círculo ou superior.",
 
+  "malha-arcana.settings.autoApplyActiveEffects.name": "Aplicar Efeitos Ativos Automaticamente",
+  "malha-arcana.settings.autoApplyActiveEffects.hint": "Se ativado, condições (Cegueira, Atordoamento, Prostrado, etc.) e Active Effects da Ruptura Arcana são aplicados automaticamente ao personagem.",
+
+  "malha-arcana.settings.shortRestCorruptionReduction.name": "Redução de Corrupção no Descanso Curto",
+  "malha-arcana.settings.shortRestCorruptionReduction.hint": "Como a Corrupção Arcana é reduzida ao completar um Descanso Curto.",
+  "malha-arcana.settings.shortRestCorruptionReduction.none": "Nenhuma redução (padrão)",
+  "malha-arcana.settings.shortRestCorruptionReduction.one": "Reduz -1 ponto",
+  "malha-arcana.settings.shortRestCorruptionReduction.half": "Reduz metade da Corrupção atual",
+  "malha-arcana.settings.shortRestCorruptionReduction.die1d4": "Rola 1d4 e reduz o resultado",
+
+  "malha-arcana.settings.longRestCorruptionReduction.name": "Redução de Corrupção no Descanso Longo",
+  "malha-arcana.settings.longRestCorruptionReduction.hint": "Como a Corrupção Arcana é reduzida ao completar um Descanso Longo.",
+  "malha-arcana.settings.longRestCorruptionReduction.reset": "Zera a Corrupção (retorna a 0, padrão)",
+  "malha-arcana.settings.longRestCorruptionReduction.half": "Reduz metade da Corrupção atual",
+  "malha-arcana.settings.longRestCorruptionReduction.five": "Reduz -5 pontos",
+  "malha-arcana.settings.longRestCorruptionReduction.none": "Nenhuma redução (permanente até purgar)",
+
   "malha-arcana.settings.onlyFirstAttackCheck.name": "Testar Malha Apenas no Primeiro Ataque",
   "malha-arcana.settings.onlyFirstAttackCheck.hint": "Se ativado, magias de múltiplos ataques sofrem teste da Malha (e risco de Ruptura Arcana) apenas no primeiro ataque disparado no turno.",
   "malha-arcana.settings.backlashDieTier1.name": "Dado de Rebote (Tier 1)",

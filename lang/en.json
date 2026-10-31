@@ -11,6 +11,23 @@
   "malha-arcana.settings.autoApplyBacklash.hint": "If enabled, backlash damage is automatically applied to the character's HP.",
   "malha-arcana.settings.autoIncrementCorruption.name": "Auto-Increment Corruption",
   "malha-arcana.settings.autoIncrementCorruption.hint": "If enabled, Corruption increases by +1 automatically when casting spells of 1st level or higher.",
+
+  "malha-arcana.settings.autoApplyActiveEffects.name": "Auto-Apply Active Effects",
+  "malha-arcana.settings.autoApplyActiveEffects.hint": "If enabled, conditions (Blinded, Stunned, Prone, etc.) and Active Effects from Arcane Rupture are automatically applied to the character.",
+
+  "malha-arcana.settings.shortRestCorruptionReduction.name": "Short Rest Corruption Reduction",
+  "malha-arcana.settings.shortRestCorruptionReduction.hint": "How Arcane Corruption is reduced upon completing a Short Rest.",
+  "malha-arcana.settings.shortRestCorruptionReduction.none": "No reduction (default)",
+  "malha-arcana.settings.shortRestCorruptionReduction.one": "Reduces -1 point",
+  "malha-arcana.settings.shortRestCorruptionReduction.half": "Reduces half of current Corruption",
+  "malha-arcana.settings.shortRestCorruptionReduction.die1d4": "Rolls 1d4 and reduces result",
+
+  "malha-arcana.settings.longRestCorruptionReduction.name": "Long Rest Corruption Reduction",
+  "malha-arcana.settings.longRestCorruptionReduction.hint": "How Arcane Corruption is reduced upon completing a Long Rest.",
+  "malha-arcana.settings.longRestCorruptionReduction.reset": "Resets Corruption (returns to 0, default)",
+  "malha-arcana.settings.longRestCorruptionReduction.half": "Reduces half of current Corruption",
+  "malha-arcana.settings.longRestCorruptionReduction.five": "Reduces -5 points",
+  "malha-arcana.settings.longRestCorruptionReduction.none": "No reduction (permanent until purged)",
   
   "malha-arcana.settings.onlyFirstAttackCheck.name": "Test Weave Only on First Attack",
   "malha-arcana.settings.onlyFirstAttackCheck.hint": "If active, multi-attack spells only suffer a Weave check (and rupture risk) on the first attack.",

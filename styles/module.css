@@ -4,29 +4,33 @@
 
 /* ─── Base Card ─────────────────────────────────────────────────── */
 .malha-arcana-card {
-  border: 2px solid #4a3875;
-  border-radius: 8px;
+  border: 1px solid var(--dnd5e-border-gold, #7a6b58);
+  border-radius: 6px;
   overflow: hidden;
-  margin: 4px 0;
-  font-family: "Signika", sans-serif;
-  background: #1a1a2e;
-  color: #e0e0e0;
+  margin: 6px 0;
+  font-family: var(--font-primary, "Signika", sans-serif);
+  background: var(--dnd5e-background-card, rgba(26, 26, 46, 0.95));
+  color: var(--color-text-primary, #e0e0e0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
 /* ─── Headers ───────────────────────────────────────────────────── */
 .malha-header {
-  padding: 8px 12px;
+  padding: 6px 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-family: var(--dnd5e-font-modesto, var(--font-title, "Modesto Condensed", serif));
+  letter-spacing: 0.5px;
 }
 
 .malha-header h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: bold;
   color: #fff;
   border: none;
+  font-family: inherit;
 }
 
 .malha-header-safe {
@@ -398,131 +402,217 @@
 /* ─── Corruption Bar UI (Sheet) ─────────────────────────────────── */
 .malha-arcana-corruption-bar {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid #4a3875;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--dnd5e-background-card, rgba(0, 0, 0, 0.05));
+  border: 1px solid var(--dnd5e-border-gold, #c9c7b8);
   border-radius: 4px;
-  padding: 6px;
-  margin-bottom: 8px;
-}
-
-.ma-bar-container {
-  flex: 1;
-  background: #2a2a35;
-  height: 20px;
-  border-radius: 4px;
-  position: relative;
-  overflow: hidden;
-  border: 1px solid #111;
-}
-
-.ma-bar-fill {
-  background: linear-gradient(90deg, #e67e22, #e74c3c);
-  height: 100%;
-  transition: width 0.3s ease;
-}
-
-.ma-bar-text {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: #fff;
-  font-size: 12px;
-  font-weight: bold;
-  text-shadow: 1px 1px 2px #000;
-  white-space: nowrap;
-}
-
-.ma-purge-btn {
-  background: rgba(142, 68, 173, 0.2);
-  border: 1px solid #8e44ad;
-  border-radius: 4px;
-  padding: 4px 8px;
-  color: #d9a0ff;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ma-purge-btn:hover {
-  background: rgba(142, 68, 173, 0.5);
-  color: #fff;
-  box-shadow: 0 0 5px #8e44ad;
-}
-
-.ma-bar-text-edit {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: #fff;
-  font-size: 12px;
-  font-weight: bold;
-  text-shadow: 1px 1px 2px #000;
-  white-space: nowrap;
-}
-
-.ma-corruption-input {
-  width: 42px !important;
-  height: 20px !important;
-  padding: 0 4px !important;
-  font-size: 12px !important;
-  font-weight: bold !important;
-  text-align: center !important;
-  color: #ffe066 !important;
-  background: rgba(0, 0, 0, 0.7) !important;
-  border: 1px solid #e67e22 !important;
-  border-radius: 3px !important;
-}
-
-
-/* ─── Corruption Bar Danger Stages ────────────────────────────── */
-.malha-arcana-corruption-bar {
+  padding: 6px 10px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   cursor: help;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.malha-arcana-corruption-bar.ma-danger-low {
+.ma-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--dnd5e-font-modesto, var(--font-title, "Modesto Condensed", serif));
+}
+
+.ma-bar-title {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: inherit;
+}
+
+.ma-bar-status {
+  font-size: 11px;
+  font-family: var(--font-primary, "Signika", sans-serif);
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.ma-bar-meter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ma-bar-container {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.25);
+  height: 22px;
+  border-radius: 3px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--color-border-dark-1, #4b4a44);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.ma-bar-fill {
+  height: 100%;
+  transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ma-bar-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: var(--dnd5e-font-roboto-condensed, var(--font-primary, sans-serif));
+  font-size: 12px;
+  font-weight: 700;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.ma-bar-text-edit {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #fff;
+  font-family: var(--dnd5e-font-roboto-condensed, var(--font-primary, sans-serif));
+  font-size: 12px;
+  font-weight: 700;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  white-space: nowrap;
+}
+
+.ma-corruption-input {
+  width: 40px !important;
+  height: 18px !important;
+  padding: 0 2px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  text-align: center !important;
+  color: #fff !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  border-radius: 2px !important;
+}
+
+.ma-purge-btn {
+  background: var(--dnd5e-color-parchment, rgba(0, 0, 0, 0.08));
+  border: 1px solid var(--dnd5e-border-gold, var(--color-border-dark-1, #b5b3a4));
+  border-radius: 3px;
+  padding: 3px 10px;
+  color: inherit;
+  font-family: var(--font-primary, "Signika", sans-serif);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.ma-purge-btn:hover {
+  background: rgba(168, 85, 247, 0.2);
+  border-color: #a855f7;
+  color: inherit;
+  box-shadow: 0 0 6px rgba(168, 85, 247, 0.4);
+}
+
+/* ─── Header Mini Badge ────────────────────────────────────────── */
+.ma-header-corruption-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: var(--font-primary, "Signika", sans-serif);
+  border-radius: 12px;
+  border: 1px solid var(--dnd5e-border-gold, #b5b3a4);
+  background: var(--dnd5e-background-card, rgba(0, 0, 0, 0.08));
+  color: inherit;
+  cursor: pointer;
+  margin: 2px 4px;
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+}
+
+.ma-header-corruption-badge:hover {
+  transform: scale(1.04);
+  background: rgba(168, 85, 247, 0.18);
+  box-shadow: 0 0 5px rgba(168, 85, 247, 0.3);
+}
+
+.ma-header-corruption-badge i {
+  font-size: 10px;
+}
+
+.ma-badge-title {
+  opacity: 0.8;
+}
+
+.ma-badge-val {
+  font-weight: 700;
+}
+
+/* ─── Corruption Danger Stages ────────────────────────────────── */
+.ma-danger-low {
+  border-color: #6366f1 !important;
+}
+.ma-danger-low .ma-bar-fill {
+  background: linear-gradient(90deg, #4f46e5, #7c3aed);
+}
+.ma-header-corruption-badge.ma-danger-low {
   border-color: #6366f1;
 }
-.malha-arcana-corruption-bar.ma-danger-low .ma-bar-fill {
-  background: linear-gradient(90deg, #4f46e5, #8b5cf6);
+
+.ma-danger-warning {
+  border-color: #d97706 !important;
+}
+.ma-danger-warning .ma-bar-fill {
+  background: linear-gradient(90deg, #b45309, #f59e0b);
+}
+.ma-header-corruption-badge.ma-danger-warning {
+  border-color: #d97706;
 }
 
-.malha-arcana-corruption-bar.ma-danger-warning {
-  border-color: #f59e0b;
+.ma-danger-critical {
+  border-color: #ea580c !important;
+  box-shadow: 0 0 6px rgba(234, 88, 12, 0.4);
 }
-.malha-arcana-corruption-bar.ma-danger-warning .ma-bar-fill {
-  background: linear-gradient(90deg, #d97706, #f59e0b);
+.ma-danger-critical .ma-bar-fill {
+  background: linear-gradient(90deg, #c2410c, #ea580c);
 }
-
-.malha-arcana-corruption-bar.ma-danger-critical {
+.ma-header-corruption-badge.ma-danger-critical {
   border-color: #ea580c;
   box-shadow: 0 0 6px rgba(234, 88, 12, 0.4);
 }
-.malha-arcana-corruption-bar.ma-danger-critical .ma-bar-fill {
-  background: linear-gradient(90deg, #ea580c, #ef4444);
-}
 
-.malha-arcana-corruption-bar.ma-danger-catastrophic {
-  border-color: #ef4444;
-  box-shadow: 0 0 12px rgba(239, 68, 68, 0.7);
+.ma-danger-catastrophic {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
   animation: ma-danger-pulse 1.2s infinite alternate ease-in-out;
 }
-.malha-arcana-corruption-bar.ma-danger-catastrophic .ma-bar-fill {
-  background: linear-gradient(90deg, #b91c1c, #ef4444);
+.ma-danger-catastrophic .ma-bar-fill {
+  background: linear-gradient(90deg, #991b1b, #ef4444);
+}
+.ma-header-corruption-badge.ma-danger-catastrophic {
+  border-color: #ef4444;
+  animation: ma-danger-pulse 1.2s infinite alternate ease-in-out;
 }
 
 @keyframes ma-danger-pulse {
   0% { box-shadow: 0 0 4px rgba(239, 68, 68, 0.4); }
-  100% { box-shadow: 0 0 14px rgba(239, 68, 68, 0.9); }
+  100% { box-shadow: 0 0 12px rgba(239, 68, 68, 0.85); }
 }
 
 /* ─── Chat Details & 1-Click Buttons ───────────────────────────── */
@@ -576,23 +666,27 @@
 .malha-dialog-preview {
   margin: 10px 0;
   padding: 8px 12px;
-  background: rgba(46, 16, 101, 0.4);
-  border: 1px solid #7e22ce;
-  border-left: 4px solid #a855f7;
+  background: var(--dnd5e-background-card, rgba(46, 16, 101, 0.15));
+  border: 1px solid var(--dnd5e-border-gold, #7e22ce);
+  border-left: 4px solid var(--dnd5e-color-purple, #a855f7);
   border-radius: 4px;
   font-size: 12px;
+  color: var(--color-text-primary, inherit);
 }
 .malha-dialog-header {
-  color: #d8b4fe;
-  font-size: 13px;
+  font-family: var(--dnd5e-font-modesto, var(--font-title, serif));
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
   margin-bottom: 6px;
   display: flex;
   align-items: center;
   gap: 6px;
+  color: inherit;
 }
 .malha-dialog-row {
   display: flex;
   justify-content: space-between;
   margin: 3px 0;
-  color: #e2e8f0;
+  color: inherit;
 }

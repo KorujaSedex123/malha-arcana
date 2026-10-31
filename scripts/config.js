@@ -141,6 +141,48 @@ export class MalhaArcanaConfig {
       default: true,
     });
 
+    // Auto-apply Active Effects on Ruptura
+    game.settings.register(MODULE_ID, "autoApplyActiveEffects", {
+      name: game.i18n.localize("malha-arcana.settings.autoApplyActiveEffects.name"),
+      hint: game.i18n.localize("malha-arcana.settings.autoApplyActiveEffects.hint"),
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: true,
+    });
+
+    // Short Rest Corruption Reduction
+    game.settings.register(MODULE_ID, "shortRestCorruptionReduction", {
+      name: game.i18n.localize("malha-arcana.settings.shortRestCorruptionReduction.name"),
+      hint: game.i18n.localize("malha-arcana.settings.shortRestCorruptionReduction.hint"),
+      scope: "world",
+      config: true,
+      type: String,
+      default: "0",
+      choices: {
+        "0": game.i18n.localize("malha-arcana.settings.shortRestCorruptionReduction.none"),
+        "1": game.i18n.localize("malha-arcana.settings.shortRestCorruptionReduction.one"),
+        "half": game.i18n.localize("malha-arcana.settings.shortRestCorruptionReduction.half"),
+        "1d4": game.i18n.localize("malha-arcana.settings.shortRestCorruptionReduction.die1d4"),
+      },
+    });
+
+    // Long Rest Corruption Reduction
+    game.settings.register(MODULE_ID, "longRestCorruptionReduction", {
+      name: game.i18n.localize("malha-arcana.settings.longRestCorruptionReduction.name"),
+      hint: game.i18n.localize("malha-arcana.settings.longRestCorruptionReduction.hint"),
+      scope: "world",
+      config: true,
+      type: String,
+      default: "reset",
+      choices: {
+        "reset": game.i18n.localize("malha-arcana.settings.longRestCorruptionReduction.reset"),
+        "half": game.i18n.localize("malha-arcana.settings.longRestCorruptionReduction.half"),
+        "5": game.i18n.localize("malha-arcana.settings.longRestCorruptionReduction.five"),
+        "none": game.i18n.localize("malha-arcana.settings.longRestCorruptionReduction.none"),
+      },
+    });
+
     // Custom Ruptura Table
     game.settings.register(MODULE_ID, "customRupturaTable", {
       name: "Tabela de Ruptura Customizada",

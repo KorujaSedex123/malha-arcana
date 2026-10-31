@@ -271,6 +271,36 @@ export class ChatMessages {
     });
   }
 
+  // ─── Rest corruption reduction message ─────────────────────────
+  static async sendRestPurgeMessage(actor, isLong, oldVal, newVal) {
+    const diff = oldVal - newVal;
+    const restLabel = isLong ? "Descanso Longo" : "Descanso Curto";
+    const icon = isLong ? "fa-bed" : "fa-mug-hot";
+
+    const content = `
+      <div class="malha-arcana-card malha-purge">
+        <div class="malha-header malha-header-purge">
+          <h3><i class="fa-solid ${icon}"></i> ${restLabel} — Estabilização da Malha</h3>
+        </div>
+        <div class="malha-body">
+          <p><strong>${foundry.utils.escapeHTML(actor.name)}</strong> descansou e permitiu que as energias turbulentas da Malha Arcana se dissipassem.</p>
+          <div class="malha-corruption-change">
+            <span class="malha-corruption-old">${oldVal}</span>
+            <span class="malha-corruption-arrow">➔</span>
+            <span class="malha-corruption-new">${newVal}</span>
+          </div>
+          <p class="malha-info" style="text-align: center;">-${diff} ponto(s) de Corrupção Arcana.</p>
+        </div>
+      </div>
+    `;
+
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor }),
+      content,
+      flags: { [MODULE_ID]: { type: "rest", isLong, oldVal, newVal } },
+    });
+  }
+
   // ─── Helper: ability label ───────────────────────
   static getAbilityLabel(ability) {
     return ability.toUpperCase();

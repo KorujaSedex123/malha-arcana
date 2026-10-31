@@ -120,6 +120,48 @@ async function _purge(actor) {
 }
 
 // ─────────────────────────────────────────────────────────────────
+// Integração com Descanso (Short Rest & Long Rest)
+// ─────────────────────────────────────────────────────────────────
+Hooks.on("dnd5e.restCompleted", async (actor, result) => {
+  if (!actor || !_appliesTo(actor)) return;
+
+  const currentCorruption = CorruptionTracker.getCorruption(actor);
+  if (currentCorruption <= 0) return;
+
+  const isLong = !!result?.longRest;
+  let newCorruption = currentCorruption;
+
+  if (isLong) {
+    const longSetting = game.settings.get(MODULE_ID, "longRestCorruptionReduction") || "reset";
+    if (longSetting === "reset") {
+      newCorruption = 0;
+    } else if (longSetting === "half") {
+      newCorruption = Math.floor(currentCorruption / 2);
+    } else if (longSetting === "5") {
+      newCorruption = Math.max(0, currentCorruption - 5);
+    }
+  } else {
+    const shortSetting = game.settings.get(MODULE_ID, "shortRestCorruptionReduction") || "0";
+    if (shortSetting === "1") {
+      newCorruption = Math.max(0, currentCorruption - 1);
+    } else if (shortSetting === "half") {
+      newCorruption = Math.floor(currentCorruption / 2);
+    } else if (shortSetting === "1d4") {
+      const r = new Roll("1d4");
+      await r.evaluate();
+      newCorruption = Math.max(0, currentCorruption - r.total);
+    }
+  }
+
+  if (newCorruption !== currentCorruption) {
+    await CorruptionTracker.setCorruption(actor, newCorruption);
+    const restTypeLabel = isLong ? "Descanso Longo" : "Descanso Curto";
+    ui.notifications.info(`🧘 ${actor.name} estabilizou sua Corrupção Arcana no ${restTypeLabel} (${currentCorruption} ➔ ${newCorruption}).`);
+    await ChatMessages.sendRestPurgeMessage(actor, isLong, currentCorruption, newCorruption);
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────
 // dnd5e 6.x — Hooks de Atividade
 //   dnd5e.preUseActivity(activity, usageConfig, dialogConfig, messageConfig)
 //   dnd5e.postUseActivity(activity, usageConfig, results)
@@ -269,18 +311,16 @@ Hooks.on("dnd5e.rollAttack", async (rolls, data) => {
 
 // ─────────────────────────────────────────────────────────────────
 // UI Injection on Actor Sheet (dnd5e 6.x — AppV2, html é HTMLElement)
+// Suporte a Personagens (Character) e Monstros (NPC)
 // ─────────────────────────────────────────────────────────────────
-Hooks.on("renderCharacterActorSheet", (app, html) => {
+function _injectMalhaActorSheet(app, html) {
   const actor = app.actor ?? app.document;
-  if (!actor) return;
+  if (!actor || !_appliesTo(actor)) return;
 
-  const spellbookTab = html.querySelector('.tab[data-tab="spells"]');
-  if (!spellbookTab) return;
+  const root = html instanceof HTMLElement ? html : (html?.[0] || html);
+  if (!root || !root.querySelector) return;
 
-  // Evita duplicar a barra em re-renders parciais
-  spellbookTab.querySelector(".malha-arcana-corruption-bar")?.remove();
-
-    const corruption = CorruptionTracker.getCorruption(actor);
+  const corruption = CorruptionTracker.getCorruption(actor);
   const maxCorruption = 20;
 
   // Determina o estágio de perigo visual (01-05: Estável, 06-10: Instável, 11-15: Crítico, 16-20: Catastrófico)
@@ -298,7 +338,41 @@ Hooks.on("renderCharacterActorSheet", (app, html) => {
   }
 
   const ruptureChance = corruption * 5;
-  const tooltipText = `&lt;strong&gt;Corrupção Arcana: ${corruption}/${maxCorruption}&lt;/strong&gt; (${dangerLabel})&lt;br/&gt;• Risco de Ruptura: d20 ≤ ${corruption} (&lt;strong&gt;${ruptureChance}%&lt;/strong&gt;)&lt;br/&gt;• Purgar: reduz -1 gastando 1 Ação.`;
+  const tooltipText = `<strong>Corrupção Arcana: ${corruption}/${maxCorruption}</strong> (${dangerLabel})<br/>• Risco de Ruptura: d20 ≤ ${corruption} (<strong>${ruptureChance}%</strong>)<br/>• Purgar: reduz -1 gastando 1 Ação.<br/><em>(Shift+Clique no ícone para purgar)</em>`;
+
+  // 1. Injeção do Mini-Badge no Cabeçalho da Ficha
+  const header = root.querySelector(".sheet-header .header-details, .sheet-header .character-details, .sheet-header");
+  if (header) {
+    header.querySelector(".ma-header-corruption-badge")?.remove();
+    const badge = document.createElement("div");
+    badge.className = `ma-header-corruption-badge ${dangerClass}`;
+    badge.setAttribute("data-tooltip", tooltipText);
+    badge.setAttribute("data-tooltip-direction", "DOWN");
+    badge.innerHTML = `
+      <i class="fa-solid fa-meteor"></i>
+      <span class="ma-badge-title">Corrupção:</span>
+      <strong class="ma-badge-val">${corruption}/${maxCorruption}</strong>
+    `;
+
+    badge.addEventListener("click", async (ev) => {
+      ev.preventDefault();
+      if (ev.shiftKey) {
+        await _purge(actor);
+      } else {
+        const spellTabBtn = root.querySelector('.tabs [data-tab="spells"], [data-action="tab"][data-tab="spells"]');
+        if (spellTabBtn) spellTabBtn.click();
+      }
+    });
+
+    header.appendChild(badge);
+  }
+
+  // 2. Injeção da Barra de Corrupção na Aba de Magias
+  const spellbookTab = root.querySelector('.tab[data-tab="spells"], .tab.spells');
+  if (!spellbookTab) return;
+
+  // Evita duplicar a barra em re-renders parciais
+  spellbookTab.querySelector(".malha-arcana-corruption-bar")?.remove();
 
   const isEditMode = !!app.isEditable;
   const bar = document.createElement("div");
@@ -308,15 +382,23 @@ Hooks.on("renderCharacterActorSheet", (app, html) => {
 
   if (isEditMode) {
     bar.innerHTML = `
-      <div class="ma-bar-container">
-        <div class="ma-bar-fill" style="width: ${(corruption / maxCorruption) * 100}%;"></div>
-        <div class="ma-bar-text-edit">
-          <span>Corrupção:</span>
-          <input type="number" class="ma-corruption-input" min="0" max="20" value="${corruption}" title="Editar valor da Corrupção">
-          <span>/ ${maxCorruption}</span>
-        </div>
+      <div class="ma-bar-header">
+        <span class="ma-bar-title"><i class="fa-solid fa-meteor"></i> Corrupção Arcana</span>
+        <span class="ma-bar-status">${dangerLabel} (Risco: ${ruptureChance}%)</span>
       </div>
-      <a class="ma-purge-btn" data-tooltip="Gastar Ação para purgar -1 de Corrupção"><i class="fas fa-om"></i> 🧘</a>
+      <div class="ma-bar-meter-row">
+        <div class="ma-bar-container">
+          <div class="ma-bar-fill" style="width: ${(corruption / maxCorruption) * 100}%;"></div>
+          <div class="ma-bar-text-edit">
+            <span>Corrupção:</span>
+            <input type="number" class="ma-corruption-input" min="0" max="20" value="${corruption}" title="Editar valor da Corrupção">
+            <span>/ ${maxCorruption}</span>
+          </div>
+        </div>
+        <button type="button" class="ma-purge-btn" data-tooltip="Gastar 1 Ação para purgar -1 de Corrupção">
+          <i class="fa-solid fa-om"></i> <span>Purgar</span>
+        </button>
+      </div>
     `;
     const input = bar.querySelector(".ma-corruption-input");
     input.addEventListener("change", async (ev) => {
@@ -328,11 +410,19 @@ Hooks.on("renderCharacterActorSheet", (app, html) => {
     });
   } else {
     bar.innerHTML = `
-      <div class="ma-bar-container">
-        <div class="ma-bar-fill" style="width: ${(corruption / maxCorruption) * 100}%;"></div>
-        <span class="ma-bar-text">Corrupção Atual: ${corruption}/${maxCorruption} (${dangerLabel})</span>
+      <div class="ma-bar-header">
+        <span class="ma-bar-title"><i class="fa-solid fa-meteor"></i> Corrupção Arcana</span>
+        <span class="ma-bar-status">${dangerLabel} (Risco: ${ruptureChance}%)</span>
       </div>
-      <a class="ma-purge-btn" data-tooltip="Gastar Ação para purgar -1 de Corrupção"><i class="fas fa-om"></i> 🧘</a>
+      <div class="ma-bar-meter-row">
+        <div class="ma-bar-container">
+          <div class="ma-bar-fill" style="width: ${(corruption / maxCorruption) * 100}%;"></div>
+          <span class="ma-bar-text">Corrupção Atual: ${corruption}/${maxCorruption} (${dangerLabel})</span>
+        </div>
+        <button type="button" class="ma-purge-btn" data-tooltip="Gastar 1 Ação para purgar -1 de Corrupção">
+          <i class="fa-solid fa-om"></i> <span>Purgar</span>
+        </button>
+      </div>
     `;
   }
 
@@ -347,7 +437,10 @@ Hooks.on("renderCharacterActorSheet", (app, html) => {
       await _purge(actor);
     }
   });
-});
+}
+
+Hooks.on("renderCharacterActorSheet", _injectMalhaActorSheet);
+Hooks.on("renderNPCActorSheet", _injectMalhaActorSheet);
 
 // ─────────────────────────────────────────────────────────────────
 // Auto-add Purge Feat para classes conjuradoras

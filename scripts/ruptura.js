@@ -13,34 +13,70 @@ export class RupturaArcana {
     await roll.evaluate();
     const d100Result = roll.total;
 
-            const customTableName = game.settings.get(MODULE_ID, "customRupturaTable") || "Ruptura Arcana";
-    let table = game.tables.getName(customTableName);
-    if (!table && (customTableName.startsWith("Compendium.") || customTableName.startsWith("RollTable."))) {
-      table = await fromUuid(customTableName);
-    }
-    if (table) {
-      await table.draw({ roll, displayChat: true });
-      return;
+    const customTableName = game.settings.get(MODULE_ID, "customRupturaTable");
+    if (customTableName && customTableName !== "Ruptura Arcana") {
+      let table = game.tables.getName(customTableName);
+      if (!table && (customTableName.startsWith("Compendium.") || customTableName.startsWith("RollTable."))) {
+        table = await fromUuid(customTableName);
+      }
+      if (table) {
+        await table.draw({ roll, displayChat: true });
+        return;
+      }
     }
 
     const effect = this.getEffect(d100Result);
 
     await ChatMessages.sendRupturaArcana(actor, castLevel, rawDie, corruption, d100Result, effect, roll);
 
-    // Apply Active Effects automatically if specified
-    if (effect.statusToApply && actor.toggleStatusEffect) {
-      const statuses = Array.isArray(effect.statusToApply) ? effect.statusToApply : [effect.statusToApply];
-      for (const status of statuses) {
+    // Apply Active Effects / Conditions automatically if enabled in settings
+    const autoApply = game.settings.get(MODULE_ID, "autoApplyActiveEffects");
+    if (autoApply && actor) {
+      // 1. Aplicação de Condições / Status Effects nativos
+      if (effect.statusToApply && actor.toggleStatusEffect) {
+        const statuses = Array.isArray(effect.statusToApply) ? effect.statusToApply : [effect.statusToApply];
+        for (const status of statuses) {
+          try {
+            await actor.toggleStatusEffect(status, { active: true });
+          } catch (err) {
+            console.warn(`${MODULE_ID} | Não foi possível aplicar o status "${status}":`, err);
+          }
+        }
+      }
+
+      // 2. Criação de Active Effect customizado (se houver)
+      if (effect.activeEffect && actor.createEmbeddedDocuments) {
         try {
-          await actor.toggleStatusEffect(status, { active: true });
+          await actor.createEmbeddedDocuments("ActiveEffect", [
+            {
+              name: effect.activeEffect.name,
+              img: effect.activeEffect.img || effect.img,
+              origin: actor.uuid,
+              duration: effect.activeEffect.duration || { seconds: 60 },
+              description: effect.activeEffect.description || effect.description,
+              changes: effect.activeEffect.changes || [],
+            },
+          ]);
         } catch (err) {
-          console.warn(`${MODULE_ID} | Não foi possível aplicar o status "${status}":`, err);
+          console.warn(`${MODULE_ID} | Não foi possível criar o ActiveEffect:`, err);
+        }
+      }
+
+      // 3. Efeitos especiais de PV direto
+      if (d100Result === 97 && actor.update) {
+        await actor.update({ "system.attributes.hp.value": 0 });
+        ui.notifications.warn(`💀 ${actor.name} sofreu Colapso Vital e caiu a 0 PV!`);
+      } else if (d100Result === 95 && actor.update) {
+        const hp = actor.system?.attributes?.hp?.value ?? 1;
+        if (hp > 1) {
+          await actor.update({ "system.attributes.hp.value": 1 });
+          ui.notifications.warn(`⚠️ ${actor.name} sofreu Toque da Morte Entrópica e caiu a 1 PV!`);
         }
       }
     }
   }
 
-    static getEffect(d100) {
+  static getEffect(d100) {
     const clamped = Math.max(1, Math.min(100, Math.round(d100)));
     const found = RUPTURA_100_EFFECTS.find(e => e.roll === clamped) || RUPTURA_100_EFFECTS[0];
 
@@ -74,7 +110,9 @@ export class RupturaArcana {
       range: `${clamped}`,
       title: found.title,
       description: found.description,
-      statusToApply: null
+      img: found.img,
+      statusToApply: found.statusToApply || null,
+      activeEffect: found.activeEffect || null,
     };
   }
 }

@@ -1,0 +1,5 @@
+2026/10/30-14:08:04.625 276c Delete type=3 #1
+2026/10/30-20:33:20.900 58a8 Level-0 table #5: started
+2026/10/30-20:33:20.903 58a8 Level-0 table #5: 38432 bytes OK
+2026/10/30-20:33:20.903 58a8 Delete type=0 #3
+2026/10/30-20:33:20.903 58a8 Manual compaction at level-0 from '!tables!malhaRuptura0001' @ 72057594037927935 : 1 .. '!tables.results!malhaRuptura0001.zs2wHEFVCWWXzMJG' @ 0 : 0; will stop at (end)
