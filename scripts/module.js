@@ -321,6 +321,9 @@ function _injectMalhaActorSheet(app, html) {
   const actor = app.actor ?? app.document;
   if (!actor || !_appliesTo(actor) || !isSpellcaster(actor)) return;
 
+  // Garante que o personagem tenha a ação de Purgar se tiver magias por classe, raça ou talento
+  _ensurePurgeFeat(actor);
+
   const root = html instanceof HTMLElement ? html : (html?.[0] || html);
   if (!root || !root.querySelector) return;
 
@@ -447,19 +450,10 @@ Hooks.on("renderCharacterActorSheet", _injectMalhaActorSheet);
 Hooks.on("renderNPCActorSheet", _injectMalhaActorSheet);
 
 // ─────────────────────────────────────────────────────────────────
-// Auto-add Purge Feat para conjuradores (classes, subclasses e magias)
+// Auto-add Purge Feat para conjuradores (classes, subclasses, raças, talentos e magias)
 // ─────────────────────────────────────────────────────────────────
-Hooks.on("createItem", async (item, options, userId) => {
-  if (game.user.id !== userId) return;
-  if (!item.parent || item.parent.documentName !== "Actor") return;
-
-  const actor = item.parent;
-  const relevantTypes = ["class", "subclass", "spell", "feat"];
-  if (!relevantTypes.includes(item.type)) return;
-
-  // Verifica dinamicamente se agora o personagem é capaz de conjurar magias
-  if (!isSpellcaster(actor)) return;
-
+async function _ensurePurgeFeat(actor) {
+  if (!actor || !isSpellcaster(actor)) return;
   const hasFeat = actor.items.some((i) => i.type === "feat" && _isPurgeItem(i));
   if (hasFeat) return;
 
@@ -479,6 +473,17 @@ Hooks.on("createItem", async (item, options, userId) => {
     },
   }, { parent: actor });
   ui.notifications.info(`Ação "Purgar a Malha" adicionada automaticamente a ${actor.name}.`);
+}
+
+Hooks.on("createItem", async (item, options, userId) => {
+  if (game.user.id !== userId) return;
+  if (!item.parent || item.parent.documentName !== "Actor") return;
+
+  const actor = item.parent;
+  const relevantTypes = ["class", "subclass", "spell", "feat", "race", "background", "equipment", "consumable"];
+  if (!relevantTypes.includes(item.type)) return;
+
+  await _ensurePurgeFeat(actor);
 });
 
 

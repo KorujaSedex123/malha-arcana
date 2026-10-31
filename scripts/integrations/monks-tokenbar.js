@@ -33,13 +33,25 @@ export function isSpellcaster(actor) {
   });
   if (hasCastingClass) return true;
 
-  // 3. Possui magias de círculo 1+ no inventário (ex: obtidas via talentos como Iniciado em Magia)
+  // 3. Possui magias de círculo 1+ no inventário (obtidas via Raça/Espécie como Tiefling/Drow, Talentos como Fey Touched, ou Itens)
   const hasLeveledSpells = actor.items?.some(
     (i) => i.type === "spell" && (i.system?.level ?? 0) > 0
   );
   if (hasLeveledSpells) return true;
 
-  // 4. Se já possui pontos de Corrupção acumulados ou feat de purga
+  // 4. Possui itens ou características com atividades de conjuração (ex: Varinhas, Bastões, Traços Raciais com atividade "cast")
+  const hasCastActivity = actor.items?.some((item) => {
+    const activities = item.system?.activities;
+    if (!activities) return false;
+    const values = activities instanceof Map ? activities.values() : Object.values(activities);
+    for (const act of values) {
+      if (act?.type === "cast") return true;
+    }
+    return false;
+  });
+  if (hasCastActivity) return true;
+
+  // 5. Se já possui pontos de Corrupção acumulados ou feat de purga
   if (CorruptionTracker.getCorruption(actor) > 1) return true;
   if (actor.items?.some((i) => i.type === "feat" && (i.name === "Ação: Purgar a Malha" || i.name === "Purgar a Malha"))) {
     return true;
