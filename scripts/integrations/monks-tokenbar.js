@@ -127,23 +127,26 @@ function _injectTokenBarCorruption(html) {
     const maxCorruption = 20;
 
     let dangerClass = "ma-danger-low";
-    let dangerLabel = "Estável";
+    let dangerLabel = game.i18n.localize("malha-arcana.sheet.dangerLow");
     if (corruption >= 16) {
       dangerClass = "ma-danger-catastrophic";
-      dangerLabel = "Catastrófico";
+      dangerLabel = game.i18n.localize("malha-arcana.sheet.dangerCatastrophic");
     } else if (corruption >= 11) {
       dangerClass = "ma-danger-critical";
-      dangerLabel = "Crítico";
+      dangerLabel = game.i18n.localize("malha-arcana.sheet.dangerCritical");
     } else if (corruption >= 6) {
       dangerClass = "ma-danger-warning";
-      dangerLabel = "Instável";
+      dangerLabel = game.i18n.localize("malha-arcana.sheet.dangerWarning");
     }
 
     const ruptureChance = corruption * 5;
-    const tooltip = `<strong>${foundry.utils.escapeHTML(actor.name)}</strong><br/>`
-      + `🌀 <strong>Corrupção Arcana: ${corruption}/${maxCorruption}</strong> (${dangerLabel})<br/>`
-      + `• Risco de Ruptura: d20 ≤ ${corruption} (<strong>${ruptureChance}%</strong>)<br/>`
-      + `<em>(Clique para abrir a ficha | Shift+Clique para purgar)</em>`;
+    const tooltip = game.i18n.format("malha-arcana.tokenbar.tooltip", {
+      name: foundry.utils.escapeHTML(actor.name),
+      corruption,
+      max: maxCorruption,
+      stage: dangerLabel,
+      chance: ruptureChance,
+    });
 
     const badge = document.createElement("div");
     badge.className = `ma-tokenbar-badge ${dangerClass}`;
@@ -162,9 +165,13 @@ function _injectTokenBarCorruption(html) {
         const oldVal = CorruptionTracker.getCorruption(actor);
         if (oldVal > 0) {
           const newVal = await CorruptionTracker.purgeCorruption(actor);
-          ui.notifications.info(`🧘 ${actor.name} purgou 1 ponto de Corrupção (${oldVal} ➔ ${newVal}).`);
+          ui.notifications.info(game.i18n.format("malha-arcana.tokenbar.purgedNotification", {
+            name: actor.name,
+            oldVal,
+            newVal,
+          }));
         } else {
-          ui.notifications.info(`${actor.name} não possui Corrupção para purgar.`);
+          ui.notifications.info(game.i18n.format("malha-arcana.purge.notification.none", { name: actor.name }));
         }
       } else {
         // Clique normal abre a ficha na aba de magias

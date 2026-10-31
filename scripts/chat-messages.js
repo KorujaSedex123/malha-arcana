@@ -90,13 +90,13 @@ export class ChatMessages {
 
           <div class="malha-corruption-info">
             <span class="malha-corruption-label">🩸 ${game.i18n.localize("malha-arcana.corruption.label")}:</span>
-            <span class="malha-corruption-value">${corruption}/20 (${corruption * 5}% risco de Ruptura)</span>
+            <span class="malha-corruption-value">${corruption}/20 (${corruption * 5}% ${game.i18n.localize("malha-arcana.sheet.riskLabel")})</span>
           </div>
 
           ${outcomeHTML}
 
           <details class="malha-accordion">
-            <summary>📊 Ver Detalhes do Cálculo & Margem</summary>
+            <summary>${game.i18n.localize("malha-arcana.chat.details")}</summary>
             <div class="malha-roll-details" style="margin-top: 6px;">
               <div class="malha-roll-line">
                 <span class="malha-roll-label">d20:</span>
@@ -274,22 +274,24 @@ export class ChatMessages {
   // ─── Rest corruption reduction message ─────────────────────────
   static async sendRestPurgeMessage(actor, isLong, oldVal, newVal) {
     const diff = oldVal - newVal;
-    const restLabel = isLong ? "Descanso Longo" : "Descanso Curto";
+    const restLabel = isLong
+      ? game.i18n.localize("malha-arcana.rest.longRest")
+      : game.i18n.localize("malha-arcana.rest.shortRest");
     const icon = isLong ? "fa-bed" : "fa-mug-hot";
 
     const content = `
       <div class="malha-arcana-card malha-purge">
         <div class="malha-header malha-header-purge">
-          <h3><i class="fa-solid ${icon}"></i> ${restLabel} — Estabilização da Malha</h3>
+          <h3><i class="fa-solid ${icon}"></i> ${game.i18n.format("malha-arcana.rest.chatTitle", { restType: restLabel })}</h3>
         </div>
         <div class="malha-body">
-          <p><strong>${foundry.utils.escapeHTML(actor.name)}</strong> descansou e permitiu que as energias turbulentas da Malha Arcana se dissipassem.</p>
+          <p>${game.i18n.format("malha-arcana.rest.chatDesc", { name: foundry.utils.escapeHTML(actor.name) })}</p>
           <div class="malha-corruption-change">
             <span class="malha-corruption-old">${oldVal}</span>
             <span class="malha-corruption-arrow">➔</span>
             <span class="malha-corruption-new">${newVal}</span>
           </div>
-          <p class="malha-info" style="text-align: center;">-${diff} ponto(s) de Corrupção Arcana.</p>
+          <p class="malha-info" style="text-align: center;">${game.i18n.format("malha-arcana.rest.chatReduction", { diff })}</p>
         </div>
       </div>
     `;
@@ -320,7 +322,7 @@ Hooks.on("renderChatMessageHTML", (message, html) => {
     if (!actor) return;
 
     if (!game.user.isGM && !actor.isOwner) {
-      ui.notifications.warn("Você não tem permissão para alterar os Pontos de Vida deste personagem.");
+      ui.notifications.warn(game.i18n.localize("malha-arcana.chat.noPermission"));
       return;
     }
 
@@ -346,7 +348,7 @@ Hooks.on("renderChatMessageHTML", (message, html) => {
 
     if (Object.keys(updates).length > 0) {
       await actor.update(updates);
-      ui.notifications.info(`${actor.name} sofreu ${totalDamage} de dano de rebote aplicado diretamente ao PV.`);
+      ui.notifications.info(game.i18n.format("malha-arcana.chat.backlashApplied", { name: actor.name, damage: totalDamage }));
     }
   });
 });

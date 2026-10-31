@@ -133,8 +133,8 @@ export class MalhaArcanaConfig {
 
     // Disable spell slot consumption
     game.settings.register(MODULE_ID, "disableSpellSlots", {
-      name: "Substituir Espaços de Magia (Malha Arcana)",
-      hint: "Impede o consumo de espaços de magia ao conjurar, tornando a magia 100% dependente do teste da Malha.",
+      name: game.i18n.localize("malha-arcana.settings.disableSpellSlots.name"),
+      hint: game.i18n.localize("malha-arcana.settings.disableSpellSlots.hint"),
       scope: "world",
       config: true,
       type: Boolean,
@@ -185,8 +185,8 @@ export class MalhaArcanaConfig {
 
     // Custom Ruptura Table
     game.settings.register(MODULE_ID, "customRupturaTable", {
-      name: "Tabela de Ruptura Customizada",
-      hint: "Nome ou UUID da RollTable a ser rolada em vez da tabela padrão.",
+      name: game.i18n.localize("malha-arcana.settings.customRupturaTable.name"),
+      hint: game.i18n.localize("malha-arcana.settings.customRupturaTable.hint"),
       scope: "world",
       config: true,
       type: String,

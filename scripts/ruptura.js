@@ -65,12 +65,12 @@ export class RupturaArcana {
       // 3. Efeitos especiais de PV direto
       if (d100Result === 97 && actor.update) {
         await actor.update({ "system.attributes.hp.value": 0 });
-        ui.notifications.warn(`💀 ${actor.name} sofreu Colapso Vital e caiu a 0 PV!`);
+        ui.notifications.warn(game.i18n.format("malha-arcana.chat.collapseWarning", { name: actor.name }));
       } else if (d100Result === 95 && actor.update) {
         const hp = actor.system?.attributes?.hp?.value ?? 1;
         if (hp > 1) {
           await actor.update({ "system.attributes.hp.value": 1 });
-          ui.notifications.warn(`⚠️ ${actor.name} sofreu Toque da Morte Entrópica e caiu a 1 PV!`);
+          ui.notifications.warn(game.i18n.format("malha-arcana.chat.touchOfDeathWarning", { name: actor.name }));
         }
       }
     }
@@ -82,24 +82,24 @@ export class RupturaArcana {
 
     // Patamares visuais
     let tier = 1;
-    let tierName = "Anomalia Sensorial";
+    let tierName = game.i18n.localize("malha-arcana.ruptura.tier1");
     let tierColor = "#4a90d9";
 
     if (clamped >= 96) {
       tier = 5;
-      tierName = "Colapso Total";
+      tierName = game.i18n.localize("malha-arcana.ruptura.tier5");
       tierColor = "#1a1a2e";
     } else if (clamped >= 76) {
       tier = 4;
-      tierName = "Invasão Cósmica";
+      tierName = game.i18n.localize("malha-arcana.ruptura.tier4");
       tierColor = "#7b2d8e";
     } else if (clamped >= 51) {
       tier = 3;
-      tierName = "Explosão Arcana";
+      tierName = game.i18n.localize("malha-arcana.ruptura.tier3");
       tierColor = "#d94a4a";
     } else if (clamped >= 26) {
       tier = 2;
-      tierName = "Debilitação Tática";
+      tierName = game.i18n.localize("malha-arcana.ruptura.tier2");
       tierColor = "#e6a817";
     }
 

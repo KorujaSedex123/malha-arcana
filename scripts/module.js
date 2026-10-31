@@ -75,34 +75,34 @@ async function _showWelcomeDialog() {
   const content = `
     <div class="malha-arcana-welcome">
       <div style="text-align: center; margin-bottom: 12px;">
-        <h2 style="margin: 0; color: #a855f7; border: none; font-size: 20px;">🌀 Bem-vindo à Malha Arcana!</h2>
-        <p style="font-size: 12px; color: #aaa; margin: 4px 0;">Sistema Alternativo de Magia para D&D 5e</p>
+        <h2 style="margin: 0; color: #a855f7; border: none; font-size: 20px;">${game.i18n.localize("malha-arcana.welcome.heading")}</h2>
+        <p style="font-size: 12px; color: #aaa; margin: 4px 0;">${game.i18n.localize("malha-arcana.welcome.subheading")}</p>
       </div>
       <p style="font-size: 13px; line-height: 1.5;">
-        A magia em sua campanha agora é volátil e viva! Em vez de consumir espaços de magia fixos, toda conjuração exige canalizar diretamente a <strong>Malha Cósmica</strong>.
+        ${game.i18n.localize("malha-arcana.welcome.p1")}
       </p>
       <div style="background: rgba(0,0,0,0.3); border-left: 3px solid #a855f7; padding: 8px 12px; margin: 10px 0; font-size: 12px;">
         <ul style="margin: 0; padding-left: 18px; line-height: 1.6;">
-          <li><strong>Teste da Malha:</strong> Ao conjurar uma magia de 1º círculo ou superior, role <em>1d20 + Modificador + Proficiência</em> contra <strong>CD 10 + Nível da Magia</strong>.</li>
-          <li><strong>Corrupção Arcana:</strong> Cada magia de 1º círculo ou superior aumenta sua Corrupção em +1 (inicia em 1 e vai até 20).</li>
-          <li><strong>Ruptura Arcana:</strong> Se o d20 natural for <em>menor ou igual</em> à sua Corrupção, a Malha se rompe e desencadeia um desastre da <strong>Tabela de 1d100</strong>!</li>
-          <li><strong>Dano de Rebote:</strong> Falhar no teste sem Ruptura causa dano irredutível ao conjurador.</li>
-          <li><strong>Purgar a Malha:</strong> Use o botão 🧘 na aba de magias da ficha para gastar sua Ação e reduzir 1 ponto de Corrupção.</li>
+          <li>${game.i18n.localize("malha-arcana.welcome.li1")}</li>
+          <li>${game.i18n.localize("malha-arcana.welcome.li2")}</li>
+          <li>${game.i18n.localize("malha-arcana.welcome.li3")}</li>
+          <li>${game.i18n.localize("malha-arcana.welcome.li4")}</li>
+          <li>${game.i18n.localize("malha-arcana.welcome.li5")}</li>
         </ul>
       </div>
       <p style="font-size: 11px; color: #888; text-align: center; margin-top: 8px;">
-        Dica: Você pode personalizar danos, tabelas customizadas e comportamento de espaços nas <em>Configurações do Módulo</em>.
+        ${game.i18n.localize("malha-arcana.welcome.hint")}
       </p>
     </div>
   `;
 
   new Dialog({
-    title: "Malha Arcana — Boas-Vindas",
+    title: game.i18n.localize("malha-arcana.welcome.title"),
     content,
     buttons: {
       ok: {
         icon: '<i class="fas fa-check"></i>',
-        label: "Entendido & Começar!",
+        label: game.i18n.localize("malha-arcana.welcome.btn"),
       },
     },
     default: "ok",
@@ -159,8 +159,15 @@ Hooks.on("dnd5e.restCompleted", async (actor, result) => {
 
   if (newCorruption !== currentCorruption) {
     await CorruptionTracker.setCorruption(actor, newCorruption);
-    const restTypeLabel = isLong ? "Descanso Longo" : "Descanso Curto";
-    ui.notifications.info(`🧘 ${actor.name} estabilizou sua Corrupção Arcana no ${restTypeLabel} (${currentCorruption} ➔ ${newCorruption}).`);
+    const restTypeLabel = isLong
+      ? game.i18n.localize("malha-arcana.rest.longRest")
+      : game.i18n.localize("malha-arcana.rest.shortRest");
+    ui.notifications.info(game.i18n.format("malha-arcana.rest.notification", {
+      name: actor.name,
+      restType: restTypeLabel,
+      oldVal: currentCorruption,
+      newVal: newCorruption,
+    }));
     await ChatMessages.sendRestPurgeMessage(actor, isLong, currentCorruption, newCorruption);
   }
 });
@@ -332,20 +339,25 @@ function _injectMalhaActorSheet(app, html) {
 
   // Determina o estágio de perigo visual (01-05: Estável, 06-10: Instável, 11-15: Crítico, 16-20: Catastrófico)
   let dangerClass = "ma-danger-low";
-  let dangerLabel = "Estável";
+  let dangerLabel = game.i18n.localize("malha-arcana.sheet.dangerLow");
   if (corruption >= 16) {
     dangerClass = "ma-danger-catastrophic";
-    dangerLabel = "Catastrófico";
+    dangerLabel = game.i18n.localize("malha-arcana.sheet.dangerCatastrophic");
   } else if (corruption >= 11) {
     dangerClass = "ma-danger-critical";
-    dangerLabel = "Crítico";
+    dangerLabel = game.i18n.localize("malha-arcana.sheet.dangerCritical");
   } else if (corruption >= 6) {
     dangerClass = "ma-danger-warning";
-    dangerLabel = "Instável";
+    dangerLabel = game.i18n.localize("malha-arcana.sheet.dangerWarning");
   }
 
   const ruptureChance = corruption * 5;
-  const tooltipText = `<strong>Corrupção Arcana: ${corruption}/${maxCorruption}</strong> (${dangerLabel})<br/>• Risco de Ruptura: d20 ≤ ${corruption} (<strong>${ruptureChance}%</strong>)<br/>• Purgar: reduz -1 gastando 1 Ação.<br/><em>(Shift+Clique no ícone para purgar)</em>`;
+  const tooltipText = game.i18n.format("malha-arcana.sheet.tooltip", {
+    corruption,
+    max: maxCorruption,
+    stage: dangerLabel,
+    chance: ruptureChance,
+  });
 
   // 1. Injeção do Mini-Badge no Cabeçalho da Ficha
   const header = root.querySelector(".sheet-header .header-details, .sheet-header .character-details, .sheet-header");
@@ -357,7 +369,7 @@ function _injectMalhaActorSheet(app, html) {
     badge.setAttribute("data-tooltip-direction", "DOWN");
     badge.innerHTML = `
       <i class="fa-solid fa-meteor"></i>
-      <span class="ma-badge-title">Corrupção:</span>
+      <span class="ma-badge-title">${game.i18n.localize("malha-arcana.sheet.barTitle")}:</span>
       <strong class="ma-badge-val">${corruption}/${maxCorruption}</strong>
     `;
 
@@ -387,23 +399,28 @@ function _injectMalhaActorSheet(app, html) {
   bar.setAttribute("data-tooltip", tooltipText);
   bar.setAttribute("data-tooltip-direction", "UP");
 
+  const barTitle = game.i18n.localize("malha-arcana.sheet.barTitle");
+  const riskLabel = game.i18n.localize("malha-arcana.sheet.riskLabel");
+  const purgeBtnText = game.i18n.localize("malha-arcana.sheet.purgeBtn");
+  const purgeTooltipText = game.i18n.localize("malha-arcana.sheet.purgeTooltip");
+
   if (isEditMode) {
     bar.innerHTML = `
       <div class="ma-bar-header">
-        <span class="ma-bar-title"><i class="fa-solid fa-meteor"></i> Corrupção Arcana</span>
-        <span class="ma-bar-status">${dangerLabel} (Risco: ${ruptureChance}%)</span>
+        <span class="ma-bar-title"><i class="fa-solid fa-meteor"></i> ${barTitle}</span>
+        <span class="ma-bar-status">${dangerLabel} (${riskLabel}: ${ruptureChance}%)</span>
       </div>
       <div class="ma-bar-meter-row">
         <div class="ma-bar-container">
           <div class="ma-bar-fill" style="width: ${(corruption / maxCorruption) * 100}%;"></div>
           <div class="ma-bar-text-edit">
-            <span>Corrupção:</span>
-            <input type="number" class="ma-corruption-input" min="0" max="20" value="${corruption}" title="Editar valor da Corrupção">
+            <span>${barTitle}:</span>
+            <input type="number" class="ma-corruption-input" min="0" max="20" value="${corruption}" title="${purgeTooltipText}">
             <span>/ ${maxCorruption}</span>
           </div>
         </div>
-        <button type="button" class="ma-purge-btn" data-tooltip="Gastar 1 Ação para purgar -1 de Corrupção">
-          <i class="fa-solid fa-om"></i> <span>Purgar</span>
+        <button type="button" class="ma-purge-btn" data-tooltip="${purgeTooltipText}">
+          <i class="fa-solid fa-om"></i> <span>${purgeBtnText}</span>
         </button>
       </div>
     `;
@@ -412,22 +429,22 @@ function _injectMalhaActorSheet(app, html) {
       const val = parseInt(ev.target.value, 10);
       if (!isNaN(val)) {
         await CorruptionTracker.setCorruption(actor, val);
-        ui.notifications.info(`Corrupção de ${actor.name} atualizada para ${val}.`);
+        ui.notifications.info(game.i18n.format("malha-arcana.sheet.updatedNotification", { name: actor.name, val }));
       }
     });
   } else {
     bar.innerHTML = `
       <div class="ma-bar-header">
-        <span class="ma-bar-title"><i class="fa-solid fa-meteor"></i> Corrupção Arcana</span>
-        <span class="ma-bar-status">${dangerLabel} (Risco: ${ruptureChance}%)</span>
+        <span class="ma-bar-title"><i class="fa-solid fa-meteor"></i> ${barTitle}</span>
+        <span class="ma-bar-status">${dangerLabel} (${riskLabel}: ${ruptureChance}%)</span>
       </div>
       <div class="ma-bar-meter-row">
         <div class="ma-bar-container">
           <div class="ma-bar-fill" style="width: ${(corruption / maxCorruption) * 100}%;"></div>
-          <span class="ma-bar-text">Corrupção Atual: ${corruption}/${maxCorruption} (${dangerLabel})</span>
+          <span class="ma-bar-text">${game.i18n.localize("malha-arcana.corruption.label")}: ${corruption}/${maxCorruption} (${dangerLabel})</span>
         </div>
-        <button type="button" class="ma-purge-btn" data-tooltip="Gastar 1 Ação para purgar -1 de Corrupção">
-          <i class="fa-solid fa-om"></i> <span>Purgar</span>
+        <button type="button" class="ma-purge-btn" data-tooltip="${purgeTooltipText}">
+          <i class="fa-solid fa-om"></i> <span>${purgeBtnText}</span>
         </button>
       </div>
     `;
@@ -462,7 +479,7 @@ async function _ensurePurgeFeat(actor) {
     type: "feat",
     img: "icons/magic/light/explosion-star-glow-silhouette.webp",
     system: {
-      description: { value: "Uma ação para purgar a corrupção da Malha Arcana." },
+      description: { value: game.i18n.localize("malha-arcana.purge.description") },
       activities: {
         [PURGE_ACTIVITY_ID]: {
           _id: PURGE_ACTIVITY_ID,
@@ -472,7 +489,7 @@ async function _ensurePurgeFeat(actor) {
       },
     },
   }, { parent: actor });
-  ui.notifications.info(`Ação "Purgar a Malha" adicionada automaticamente a ${actor.name}.`);
+  ui.notifications.info(game.i18n.format("malha-arcana.sheet.autoAddNotification", { name: actor.name }));
 }
 
 Hooks.on("createItem", async (item, options, userId) => {
@@ -587,7 +604,10 @@ async function _ensureTestCharacters(force = false) {
   }
 
   if (createdCount > 0) {
-    ui.notifications.info(`✨ ${createdCount} personagens de teste da Malha Arcana foram criados na pasta "${folderName}" na aba de Atores!`);
+    ui.notifications.info(game.i18n.format("malha-arcana.characters.testCreated", {
+      count: createdCount,
+      folder: folderName,
+    }));
   }
 }
 
@@ -664,19 +684,19 @@ Hooks.on("renderActivityUsageDialog", (dialog, html) => {
   previewBox.className = "malha-dialog-preview";
   previewBox.innerHTML = `
     <div class="malha-dialog-header">
-      <i class="fas fa-meteor"></i> <strong>Risco da Malha Arcana</strong>
+      <i class="fas fa-meteor"></i> <strong>${game.i18n.localize("malha-arcana.dialog.title")}</strong>
     </div>
     <div class="malha-dialog-body">
       <div class="malha-dialog-row">
-        <span>CD da Malha:</span>
-        <strong class="ma-preview-dc">${dc} (10 + Nível ${selectedLevel})</strong>
+        <span>${game.i18n.localize("malha-arcana.dialog.dcLabel")}</span>
+        <strong class="ma-preview-dc">${dc} (${game.i18n.format("malha-arcana.dialog.dcFormula", { dc, level: selectedLevel })})</strong>
       </div>
       <div class="malha-dialog-row">
-        <span>Corrupção resultante:</span>
+        <span>${game.i18n.localize("malha-arcana.dialog.resultCorruption")}</span>
         <strong>${nextCorruption}/20</strong>
       </div>
       <div class="malha-dialog-row" style="color: #f87171;">
-        <span>Risco de Ruptura Cósmica:</span>
+        <span>${game.i18n.localize("malha-arcana.dialog.ruptureRisk")}</span>
         <strong>d20 ≤ ${nextCorruption} (${ruptureChance}%)</strong>
       </div>
     </div>
@@ -696,7 +716,7 @@ Hooks.on("renderActivityUsageDialog", (dialog, html) => {
 
       const newDC = 10 + lvl;
       const dcEl = previewBox.querySelector(".ma-preview-dc");
-      if (dcEl) dcEl.textContent = `${newDC} (10 + Nível ${lvl})`;
+      if (dcEl) dcEl.textContent = `${newDC} (${game.i18n.format("malha-arcana.dialog.dcFormula", { dc: newDC, level: lvl })})`;
     });
   }
 });
