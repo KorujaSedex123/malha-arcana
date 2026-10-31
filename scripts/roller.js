@@ -51,11 +51,13 @@ export class MalhaArcanaRoller {
       currentCorruption = corruptionBeforeCast;
     }
 
-    // Roll the d20
-    const roll = new Roll("1d20");
+    // Roll the d20 with modifier
+    const formula = totalMod !== 0 ? `1d20 + ${totalMod}` : "1d20";
+    const roll = new Roll(formula);
     await roll.evaluate();
-    const rawDie = roll.dice[0].results[0].result;
-    const totalRoll = rawDie + totalMod;
+    const d20Term = roll.terms ? roll.terms.find((t) => t.faces === 20) : null;
+    const rawDie = d20Term?.results?.find((r) => r.active)?.result ?? roll.dice[0]?.results[0]?.result ?? 10;
+    const totalRoll = roll.total;
 
     // Determine success or failure
     const success = totalRoll >= spellDC;
@@ -122,6 +124,7 @@ export class MalhaArcanaRoller {
     const corruptionTriggered = rawDie <= currentCorruption && castLevel > 0;
     
     const result = {
+      roll,
       actor,
       item,
       castLevel,

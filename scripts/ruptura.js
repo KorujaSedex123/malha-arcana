@@ -19,9 +19,6 @@ export class RupturaArcana {
       table = await fromUuid(customTableName);
     }
     if (table) {
-      if (roll && game.dice3d) {
-        await game.dice3d.showForRoll(roll, game.user, true);
-      }
       await table.draw({ roll, displayChat: true });
       return;
     }

@@ -14,6 +14,7 @@ import { ChatMessages } from "./chat-messages.js";
 import { CorruptionTracker } from "./corruption.js";
 import "./lib/lib.js";
 import { RUPTURA_100_EFFECTS } from "./data/ruptura-effects.js";
+import { TEST_CHARACTERS } from "./characters-data.js";
 
 const MODULE_ID = "malha-arcana";
 const PURGE_NAMES = ["Ação: Purgar a Malha", "Purgar a Malha"];
@@ -40,6 +41,7 @@ Hooks.once("init", function () {
     ruptura: RupturaArcana,
     chat: ChatMessages,
     corruption: CorruptionTracker,
+    createTestCharacters: () => _ensureTestCharacters(true),
   };
 });
 
@@ -48,6 +50,9 @@ Hooks.once("ready", async function () {
 
   // Cria/importa a RollTable para a aba de Tabelas do mundo se o GM ainda não tiver
   await _ensureWorldRupturaTable();
+
+  // Garante os 5 personagens de teste na aba de Atores do mundo em uma pasta própria
+  await _ensureTestCharacters();
 
   // Boas-vindas na primeira inicialização (estilo Dice So Nice)
   if (game.user.isGM) {
@@ -119,16 +124,35 @@ async function _purge(actor) {
 //   dnd5e.preUseActivity(activity, usageConfig, dialogConfig, messageConfig)
 //   dnd5e.postUseActivity(activity, usageConfig, results)
 // ─────────────────────────────────────────────────────────────────
-Hooks.on("dnd5e.preActivityConsumption", (activity, usageConfig, messageConfig) => {
-  const item = activity?.item;
-  const actor = item?.actor;
-  if (!actor || item?.type !== "spell" || !_appliesTo(actor)) return;
+/**
+ * Indica se a regra de "sem espaços de magia" deve ser aplicada a esta magia.
+ * @param {Item} item
+ * @param {Actor} actor
+ * @returns {boolean}
+ */
+const _bypassSlots = (item, actor) =>
+  !!actor && item?.type === "spell" && (item.system?.level ?? 0) > 0
+  && _appliesTo(actor) && game.settings.get(MODULE_ID, "disableSpellSlots");
 
-  if (game.settings.get(MODULE_ID, "disableSpellSlots")) {
-    if (usageConfig?.spell) {
-      usageConfig.spell.slot = false;
-      usageConfig.spell.consume = false;
-    }
+/**
+ * Desliga o consumo de espaço de magia no usageConfig e na atividade,
+ * mantendo a chave do slot para escalonamento / upcast.
+ * @param {object} usageConfig
+ * @param {Activity} [activity]
+ */
+function _disableSlotConsumption(usageConfig, activity) {
+  if (activity?.consumption) activity.consumption.spellSlot = false;
+  if (!usageConfig) return;
+  if (usageConfig.consume === true) {
+    usageConfig.consume = { action: true, resources: [], spellSlot: false };
+  } else if (usageConfig.consume && typeof usageConfig.consume === "object") {
+    usageConfig.consume.spellSlot = false;
+  }
+}
+
+Hooks.on("dnd5e.preActivityConsumption", (activity, usageConfig) => {
+  if (_bypassSlots(activity?.item, activity?.item?.actor)) {
+    _disableSlotConsumption(usageConfig, activity);
   }
 });
 
@@ -141,6 +165,15 @@ Hooks.on("dnd5e.preUseActivity", (activity, usageConfig) => {
   if (_isPurgeItem(item)) {
     _purge(actor);
     return false; // blocks default execution
+  }
+
+  // Sem espaços de magia: desativa consumo de slot e ajusta chave padrão de nível
+  if (_bypassSlots(item, actor)) {
+    _disableSlotConsumption(usageConfig, activity);
+    usageConfig.spell ??= {};
+    const level = item.system?.level ?? 1;
+    const current = usageConfig.spell.slot;
+    if (!current || !/^spell\d+$/.test(current)) usageConfig.spell.slot = `spell${level}`;
   }
 
   return true;
@@ -357,37 +390,38 @@ async function _ensureWorldRupturaTable() {
   if (!game.user.isGM) return;
   const tableName = "Ruptura Arcana";
   const existing = game.tables.getName(tableName);
-  
-  // Se a tabela ja existe com 100 resultados, nada precisa ser feito
-  if (existing && existing.results.size >= 100) return;
+
+  const resultType = CONST.TABLE_RESULT_TYPES?.TEXT ?? "text";
+  const results = RUPTURA_100_EFFECTS.map((item) => ({
+    type: resultType,
+    name: item.title,
+    description: item.description,
+    text: `<strong>${item.title}</strong><br/>${item.description}`,
+    weight: 1,
+    range: [item.roll, item.roll],
+    drawn: false,
+    img: item.img || "icons/magic/lightning/bolt-strike-blue.webp"
+  }));
+
+  // Se a tabela ja existe com 100 resultados, verifica se precisa atualizar para os ícones temáticos
+  if (existing && existing.results.size >= 100) {
+    const hasOldGenericIcons = Array.from(existing.results).every((r) => !r.img || r.img.includes("spell-strike-spark-purple"));
+    if (!hasOldGenericIcons) return;
+    console.log("malha-arcana | Atualizando tabela 'Ruptura Arcana' do mundo com os novos ícones temáticos...");
+    await existing.deleteEmbeddedDocuments("TableResult", existing.results.map((r) => r.id));
+    await existing.createEmbeddedDocuments("TableResult", results);
+    return;
+  }
 
   // Se ja existe uma tabela antiga com menos de 100 resultados, atualiza para a nova completa de 100
   if (existing) {
-    console.log("malha-arcana | Atualizando tabela 'Ruptura Arcana' do mundo para os 100 efeitos unicos...");
-    const results = RUPTURA_100_EFFECTS.map(item => ({
-      type: 0,
-      text: `<strong>${item.title}</strong><br/>${item.description}`,
-      weight: 1,
-      range: [item.roll, item.roll],
-      drawn: false,
-      img: "icons/magic/chaos/spell-strike-spark-purple.webp"
-    }));
-    await existing.deleteEmbeddedDocuments("TableResult", existing.results.map(r => r.id));
+    console.log("malha-arcana | Atualizando tabela 'Ruptura Arcana' do mundo para os 100 efeitos únicos...");
+    await existing.deleteEmbeddedDocuments("TableResult", existing.results.map((r) => r.id));
     await existing.createEmbeddedDocuments("TableResult", results);
     return;
   }
 
   // Se nao existe, cria com os 100 efeitos unicos
-  const results = RUPTURA_100_EFFECTS.map(item => ({
-    _id: "res" + String(item.roll).padStart(5, "0"),
-    type: 0,
-    text: `<strong>${item.title}</strong><br/>${item.description}`,
-    weight: 1,
-    range: [item.roll, item.roll],
-    drawn: false,
-    img: "icons/magic/chaos/spell-strike-spark-purple.webp"
-  }));
-
   await RollTable.create({
     name: tableName,
     description: "Tabela oficial de Desastres Mágicos (1d100) da Malha Arcana com 100 efeitos únicos (1 a 100). Totalmente editável pelo Mestre!",
@@ -398,6 +432,59 @@ async function _ensureWorldRupturaTable() {
     img: "icons/magic/lightning/bolt-strike-blue.webp"
   });
   console.log("malha-arcana | Tabela 'Ruptura Arcana' com 100 efeitos únicos criada na aba de Tabelas do mundo.");
+}
+
+/**
+ * Garante que os 5 personagens de teste da Malha Arcana existam na aba de Atores do mundo em uma pasta própria,
+ * e remove duplicatas caso o usuário tenha tentado importar várias vezes.
+ * @param {boolean} [force=false]
+ */
+async function _ensureTestCharacters(force = false) {
+  if (!game.user.isGM) return;
+
+  const folderName = "Malha Arcana — Personagens de Teste";
+  let folder = game.folders.find((f) => f.type === "Actor" && f.name === folderName);
+
+  if (!folder) {
+    folder = await Folder.create({
+      name: folderName,
+      type: "Actor",
+      color: "#7c3aed",
+      sorting: "a",
+    });
+  }
+
+  // Remove duplicatas que possuam o mesmo nome dos personagens de teste
+  for (const charData of TEST_CHARACTERS) {
+    const matching = game.actors.filter((a) => a.name === charData.name);
+    if (matching.length > 1) {
+      console.log(`malha-arcana | Removendo ${matching.length - 1} duplicatas de "${charData.name}"...`);
+      for (let i = 1; i < matching.length; i++) {
+        await matching[i].delete();
+      }
+    }
+  }
+
+  let createdCount = 0;
+  for (const charData of TEST_CHARACTERS) {
+    const existing = game.actors.find((a) => a.name === charData.name);
+    if (!existing || force) {
+      if (existing && force) await existing.delete();
+      const dataToCreate = foundry.utils.duplicate(charData);
+      dataToCreate.folder = folder.id;
+      delete dataToCreate._id;
+      dataToCreate.ownership = { default: 2 }; // Permissão Observador para os jogadores poderem abrir
+      await Actor.create(dataToCreate);
+      createdCount++;
+    } else if (existing && existing.folder !== folder.id) {
+      // Se já existe mas está fora da pasta, move para dentro da pasta
+      await existing.update({ folder: folder.id });
+    }
+  }
+
+  if (createdCount > 0) {
+    ui.notifications.info(`✨ ${createdCount} personagens de teste da Malha Arcana foram criados na pasta "${folderName}" na aba de Atores!`);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -411,7 +498,61 @@ Hooks.on("renderActivityUsageDialog", (dialog, html) => {
 
   const currentCorruption = CorruptionTracker.getCorruption(actor);
   const baseSpellLevel = item.system?.level ?? 1;
-  const baseDC = 10 + baseSpellLevel;
+
+  const form = html.querySelector("form") || html;
+
+  // 1. DEDUPLICAÇÃO: remove instâncias anteriores de prévia (ocorre quando o diálogo re-renderiza via submitOnChange)
+  form.querySelectorAll(".malha-dialog-preview").forEach((el) => el.remove());
+
+  // 2. Se a opção de desativar espaços de magia estiver ativa:
+  const bypass = game.settings.get(MODULE_ID, "disableSpellSlots");
+  if (bypass) {
+    // Remove avisos nativos do dnd5e de falta de slots ("Você não possui espaços de magia...")
+    const notes = html.querySelectorAll(".note.warn, .notification.warning, .alert-warning");
+    notes.forEach((n) => {
+      const txt = (n.textContent || "").toLowerCase();
+      if (txt.includes("espaços de magia") || txt.includes("slots")) {
+        n.remove();
+      }
+    });
+
+    // Oculta o checkbox de "Consumir Espaço de Magia?"
+    const consumeSlotInput = html.querySelector('input[name="consume.spellSlot"]');
+    if (consumeSlotInput) {
+      consumeSlotInput.checked = false;
+      const group = consumeSlotInput.closest(".form-group");
+      if (group) group.style.display = "none";
+    }
+  }
+
+  // 3. Dropdown de Escalonamento / Upcast
+  const slotSelect = html.querySelector('select[name="spell.slot"]');
+  let selectedLevel = baseSpellLevel;
+
+  if (slotSelect) {
+    const validOptions = Array.from(slotSelect.options).filter((o) => !o.disabled && o.value);
+    if (validOptions.length === 0) {
+      // Cria opções do nível base até o 9º nível caso o dnd5e não tenha opções válidas
+      slotSelect.innerHTML = "";
+      for (let lvl = baseSpellLevel; lvl <= 9; lvl++) {
+        const opt = document.createElement("option");
+        opt.value = `spell${lvl}`;
+        opt.textContent = `${lvl}º Nível`;
+        if (lvl === baseSpellLevel) opt.selected = true;
+        slotSelect.appendChild(opt);
+      }
+    } else {
+      // Reabilita as opções caso o sistema as tenha desabilitado por 0 slots
+      for (const opt of slotSelect.options) {
+        opt.disabled = false;
+      }
+    }
+
+    const match = /^spell(\d+)$/.exec(slotSelect.value);
+    if (match) selectedLevel = parseInt(match[1], 10);
+  }
+
+  const dc = 10 + selectedLevel;
   const nextCorruption = Math.min(20, currentCorruption + 1);
   const ruptureChance = nextCorruption * 5;
 
@@ -424,7 +565,7 @@ Hooks.on("renderActivityUsageDialog", (dialog, html) => {
     <div class="malha-dialog-body">
       <div class="malha-dialog-row">
         <span>CD da Malha:</span>
-        <strong class="ma-preview-dc">${baseDC} (10 + Nível ${baseSpellLevel})</strong>
+        <strong class="ma-preview-dc">${dc} (10 + Nível ${selectedLevel})</strong>
       </div>
       <div class="malha-dialog-row">
         <span>Corrupção resultante:</span>
@@ -437,18 +578,16 @@ Hooks.on("renderActivityUsageDialog", (dialog, html) => {
     </div>
   `;
 
-  // Insere antes dos botões de ação do diálogo
-  const form = html.querySelector("form") || html;
+  // Insere a prévia dentro do formulário antes dos botões de envio
   form.appendChild(previewBox);
 
-  // Se o jogador alterar o slot no diálogo, atualiza a CD dinamicamente
-  const slotSelect = html.querySelector('select[name="spell.slot"]');
+  // Ao alterar o dropdown no formulário, atualiza a CD em tempo real
   if (slotSelect) {
     slotSelect.addEventListener("change", (ev) => {
       let lvl = baseSpellLevel;
       const val = ev.target.value;
-      const match = /^spell(\d+)$/.exec(val);
-      if (match) lvl = parseInt(match[1], 10);
+      const m = /^spell(\d+)$/.exec(val);
+      if (m) lvl = parseInt(m[1], 10);
       else if (val === "pact") lvl = actor.system?.spells?.pact?.level || baseSpellLevel;
 
       const newDC = 10 + lvl;

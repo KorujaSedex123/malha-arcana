@@ -12,7 +12,78 @@ export class ChatMessages {
         <div class="malha-header malha-header-safe">
           <h3>🔮 ${game.i18n.localize("malha-arcana.cantrip.title")}</h3>
         </div>
-                <div class="malha-body">
+        <div class="malha-body">
+          <p><strong>${foundry.utils.escapeHTML(actor.name)}</strong> ${game.i18n.localize("malha-arcana.cantrip.info")}</p>
+        </div>
+      </div>
+    `;
+
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor }),
+      content,
+      flags: { [MODULE_ID]: { type: "cantrip" } },
+    });
+  }
+
+  // ─── Main spellcasting check result ────────────────────────────
+  static async sendCheckResult(result) {
+    const {
+      roll,
+      actor,
+      item,
+      castLevel,
+      spellDC,
+      rawDie,
+      totalRoll,
+      totalMod,
+      abilityMod,
+      profBonus,
+      spellcastingAbility,
+      success,
+      isAttackSpell,
+      isSaveSpell,
+      corruption,
+      corruptionTriggered,
+    } = result;
+
+    const abilityLabel = this.getAbilityLabel(spellcastingAbility);
+    const modSign = totalMod >= 0 ? "+" : "";
+    const upcastNote = castLevel > (item.system?.level ?? 0)
+      ? ` <span class="malha-upcast">(Upcast ${castLevel})</span>`
+      : "";
+
+    let outcomeHTML;
+    let headerClass;
+
+    if (corruptionTriggered) {
+      headerClass = "malha-header-ruptura";
+      outcomeHTML = `
+        <div class="malha-outcome malha-outcome-ruptura">
+          <p class="malha-ruptura-alert">⚡ ${game.i18n.localize("malha-arcana.check.ruptura")} ⚡</p>
+        </div>
+      `;
+    } else if (success) {
+      headerClass = "malha-header-success";
+      outcomeHTML = `
+        <div class="malha-outcome malha-outcome-success">
+          <p>✅ <strong>${game.i18n.localize("malha-arcana.check.success")}</strong></p>
+        </div>
+      `;
+    } else {
+      headerClass = "malha-header-fail";
+      outcomeHTML = `
+        <div class="malha-outcome malha-outcome-fail">
+          <p>❌ <strong>${game.i18n.localize("malha-arcana.check.failure")}</strong></p>
+        </div>
+      `;
+    }
+
+    const content = `
+      <div class="malha-arcana-card">
+        <div class="malha-header ${headerClass}">
+          <h3>🌀 ${game.i18n.localize("malha-arcana.check.title")}</h3>
+        </div>
+        <div class="malha-body">
           <div class="malha-spell-info">
             <p><strong>${foundry.utils.escapeHTML(actor.name)}</strong> ➔ <strong>${foundry.utils.escapeHTML(item.name)}</strong> (${castLevel})${upcastNote}</p>
           </div>
@@ -45,23 +116,15 @@ export class ChatMessages {
               </div>
             </div>
           </details>
-            <span class="malha-corruption-label">🩸 ${game.i18n.localize("malha-arcana.corruption.label")}:</span>
-            <span class="malha-corruption-value">${corruption}/20</span>
-          </div>
-
-          ${outcomeHTML}
         </div>
       </div>
     `;
 
-    if (roll && game.dice3d) {
-      await game.dice3d.showForRoll(roll, game.user, true);
-    }
-
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor }),
       content,
-      rolls: roll ? [roll] : [],
+      // Apenas inclui dados se não for ataque (em magias de ataque o sistema dnd5e já rolou o dado 3D)
+      rolls: (roll && !isAttackSpell) ? [roll] : [],
       flags: {
         [MODULE_ID]: {
           type: "check",
@@ -106,10 +169,6 @@ export class ChatMessages {
         </div>
       </div>
     `;
-
-    if (roll && game.dice3d) {
-      await game.dice3d.showForRoll(roll, game.user, true);
-    }
 
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor }),
@@ -170,10 +229,6 @@ export class ChatMessages {
         </div>
       </div>
     `;
-
-    if (roll && game.dice3d) {
-      await game.dice3d.showForRoll(roll, game.user, true);
-    }
 
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor }),
