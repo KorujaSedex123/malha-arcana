@@ -112,21 +112,13 @@ Navigate to *Configure Settings → Arcane Weave*:
 If you enjoy **Arcane Weave** and it brings extra tension and excitement to magic in your games, please consider supporting its continuous development! Every donation helps keep the module maintained and compatible with upcoming Foundry VTT and D&D 5e updates.
 
 <p align="center">
-  <a href="https://ko-fi.com/korujasedex" target="_blank">
-    <img src="https://img.shields.io/badge/Ko--fi-F16061?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Support on Ko-fi" />
+  <a href="https://livepix.gg/korujasedex" target="_blank">
+    <img src="https://img.shields.io/badge/LivePix-Support%20via%20Pix-00C49F?style=for-the-badge&logo=pix&logoColor=white" alt="Support via LivePix" />
   </a>
-  &nbsp;
-  <a href="https://www.buymeacoffee.com/korujasedex" target="_blank">
-    <img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me a Coffee" />
-  </a>
-  &nbsp;
-  <a href="https://apoia.se/malha-arcana" target="_blank">
-    <img src="https://img.shields.io/badge/Apoia.se-EA2027?style=for-the-badge&logo=patreon&logoColor=white" alt="Apoia.se" />
-  </a>
-  &nbsp;
-  <a href="https://www.paypal.com/donate" target="_blank">
-    <img src="https://img.shields.io/badge/PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white" alt="Donate with PayPal" />
-  </a>
+</p>
+
+<p align="center">
+  👉 Direct link: <strong><a href="https://livepix.gg/korujasedex" target="_blank">livepix.gg/korujasedex</a></strong>
 </p>
 
 ---

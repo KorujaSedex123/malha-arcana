@@ -112,24 +112,14 @@ Acesse *Configurar Opções → Malha Arcana*:
 Se você gosta do **Malha Arcana** e ele tornou a magia da sua mesa mais emocionante e dinâmica, considere apoiar o desenvolvimento contínuo! Cada contribuição ajuda a manter o módulo atualizado com as novas versões do Foundry VTT e D&D 5e.
 
 <p align="center">
-  <a href="https://ko-fi.com/korujasedex" target="_blank">
-    <img src="https://img.shields.io/badge/Ko--fi-F16061?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Doar via Ko-fi" />
-  </a>
-  &nbsp;
-  <a href="https://www.buymeacoffee.com/korujasedex" target="_blank">
-    <img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Comprar um Café" />
-  </a>
-  &nbsp;
-  <a href="https://apoia.se/malha-arcana" target="_blank">
-    <img src="https://img.shields.io/badge/Apoia.se-EA2027?style=for-the-badge&logo=patreon&logoColor=white" alt="Apoia.se" />
-  </a>
-  &nbsp;
-  <a href="https://www.paypal.com/donate" target="_blank">
-    <img src="https://img.shields.io/badge/PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white" alt="Doar via PayPal" />
+  <a href="https://livepix.gg/korujasedex" target="_blank">
+    <img src="https://img.shields.io/badge/LivePix-Apoiar%20via%20Pix-00C49F?style=for-the-badge&logo=pix&logoColor=white" alt="Apoiar com LivePix" />
   </a>
 </p>
 
-> **Chave Pix (Brasil):** Se você mora no Brasil e prefere apoiar via Pix, você pode enviar qualquer valor diretamente para apoiar os projetos do criador. Muito obrigado pelo carinho!
+<p align="center">
+  👉 Acesse e apoie pelo link: <strong><a href="https://livepix.gg/korujasedex" target="_blank">livepix.gg/korujasedex</a></strong>
+</p>
 
 ---
 
