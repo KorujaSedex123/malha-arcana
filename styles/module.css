@@ -739,3 +739,95 @@
   box-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
   animation: ma-danger-pulse 1.2s infinite alternate ease-in-out;
 }
+
+/* ─── Screen Effects / Shader FX Overlay ───────────────────────── */
+#malha-screen-vignette,
+.malha-screen-vignette-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.8s ease-in-out, box-shadow 0.8s ease-in-out, background 0.8s ease-in-out;
+}
+
+/* Instável (6-10) — Leve névoa cósmica nas bordas */
+#malha-screen-vignette.ma-vignette-instavel {
+  opacity: 0.35;
+  background: radial-gradient(circle at center, transparent 65%, rgba(124, 58, 237, 0.45) 100%);
+  box-shadow: inset 0 0 60px rgba(124, 58, 237, 0.3);
+}
+
+/* Crítico (11-15) — Vinheta púrpura pulsante */
+#malha-screen-vignette.ma-vignette-critico {
+  opacity: 0.65;
+  background: radial-gradient(circle at center, transparent 55%, rgba(147, 51, 234, 0.65) 100%);
+  box-shadow: inset 0 0 100px rgba(147, 51, 234, 0.55);
+  animation: ma-vignette-pulse 2.2s infinite ease-in-out alternate;
+}
+
+/* Catastrófico (16-20) — Vinheta pesada avermelhada/púrpura com pulso cardíaco intenso */
+#malha-screen-vignette.ma-vignette-catastrofico {
+  opacity: 0.85;
+  background: radial-gradient(circle at center, transparent 40%, rgba(88, 28, 135, 0.6) 80%, rgba(220, 38, 38, 0.8) 100%);
+  box-shadow: inset 0 0 140px rgba(220, 38, 38, 0.65), inset 0 0 70px rgba(147, 51, 234, 0.8);
+  animation: ma-heartbeat-pulse 1.3s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+@keyframes ma-vignette-pulse {
+  0% {
+    opacity: 0.45;
+    box-shadow: inset 0 0 80px rgba(147, 51, 234, 0.4);
+  }
+  100% {
+    opacity: 0.75;
+    box-shadow: inset 0 0 130px rgba(147, 51, 234, 0.75);
+  }
+}
+
+@keyframes ma-heartbeat-pulse {
+  0% {
+    opacity: 0.65;
+    box-shadow: inset 0 0 110px rgba(220, 38, 38, 0.5);
+    transform: scale(1);
+  }
+  20% {
+    opacity: 0.95;
+    box-shadow: inset 0 0 180px rgba(220, 38, 38, 0.85);
+    transform: scale(1.008);
+  }
+  35% {
+    opacity: 0.75;
+    box-shadow: inset 0 0 130px rgba(147, 51, 234, 0.6);
+    transform: scale(1.002);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: inset 0 0 200px rgba(220, 38, 38, 0.95), inset 0 0 90px rgba(147, 51, 234, 0.9);
+    transform: scale(1.012);
+  }
+  70% {
+    opacity: 0.7;
+    box-shadow: inset 0 0 120px rgba(220, 38, 38, 0.55);
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.65;
+    box-shadow: inset 0 0 110px rgba(220, 38, 38, 0.5);
+    transform: scale(1);
+  }
+}
+
+/* Flash instantâneo de tela */
+.malha-screen-pulse {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10000;
+  opacity: 0.6;
+  transition: opacity 0.5s ease-out;
+}
+
+.malha-screen-pulse.fade-out {
+  opacity: 0;
+}

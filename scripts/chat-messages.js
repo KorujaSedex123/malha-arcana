@@ -55,6 +55,15 @@ export class ChatMessages {
     let outcomeHTML;
     let headerClass;
 
+    const overchannel = !!result.overchannel;
+    const overchannelCorruptionAdded = result.overchannelCorruptionAdded ?? 0;
+    const overchannelHTML = overchannel ? `
+      <div class="malha-overchannel-badge" style="margin: 8px 0; padding: 6px 10px; background: rgba(168, 85, 247, 0.15); border: 1px solid #a855f7; border-radius: 4px; text-align: center; color: #e9d5ff; font-size: 12px;">
+        <div style="font-weight: bold;">${game.i18n.format("malha-arcana.chat.overchannelActive", { corruptionAdded: overchannelCorruptionAdded })}</div>
+        ${success ? `<div style="font-size: 11px; color: #fde047; margin-top: 3px;">${game.i18n.localize("malha-arcana.chat.overchannelMaxDamage")}</div>` : ""}
+      </div>
+    ` : "";
+
     if (corruptionTriggered) {
       headerClass = "malha-header-ruptura";
       outcomeHTML = `
@@ -92,6 +101,8 @@ export class ChatMessages {
             <span class="malha-corruption-label">🩸 ${game.i18n.localize("malha-arcana.corruption.label")}:</span>
             <span class="malha-corruption-value">${corruption}/20 (${corruption * 5}% ${game.i18n.localize("malha-arcana.sheet.riskLabel")})</span>
           </div>
+
+          ${overchannelHTML}
 
           ${outcomeHTML}
 
@@ -142,9 +153,13 @@ export class ChatMessages {
   }
 
   // ─── Backlash damage message ───────────────────────────────────
-  static async sendBacklashDamage(actor, item, castLevel, formula, totalDamage, damageType, roll, narrativeFlavor) {
-    // Tocar efeito do Sequencer para Backlash
-    if (typeof Sequencer !== "undefined") {
+  static async sendBacklashDamage(actor, item, castLevel, formula, totalDamage, damageType, roll, narrativeFlavor, options = {}) {
+    // Síntese sonora de choque arcano
+    this._playProceduralSound("backlash");
+
+    // Efeito visual do Sequencer para Backlash
+    const enableSequencer = game.settings.get(MODULE_ID, "enableSequencerFX");
+    if (enableSequencer && typeof Sequencer !== "undefined") {
       new Sequence()
         .effect()
           .file("jb2a.impact.magic_missile.purple")
@@ -154,6 +169,12 @@ export class ChatMessages {
 
     const damageTypeLabel = damageType === "force" ? "Force" : "Psychic";
 
+    const overchannelHTML = options.overchannel ? `
+      <div class="malha-overchannel-backlash-badge" style="margin: 6px 0 10px 0; padding: 6px 8px; background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; border-radius: 4px; text-align: center; color: #fca5a5; font-size: 12px; font-weight: bold;">
+        ${game.i18n.localize("malha-arcana.chat.overchannelBacklashDoubled")}
+      </div>
+    ` : "";
+
     const content = `
       <div class="malha-arcana-card malha-backlash">
         <div class="malha-header malha-header-backlash">
@@ -161,6 +182,7 @@ export class ChatMessages {
         </div>
         <div class="malha-body">
           ${narrativeFlavor ? `<p class="malha-narrative"><em>${narrativeFlavor}</em></p>` : ""}
+          ${overchannelHTML}
           <div class="malha-damage-box">
             <div class="malha-damage-formula">${formula}</div>
             <div class="malha-damage-total">${totalDamage} ${damageTypeLabel}</div>
@@ -187,14 +209,8 @@ export class ChatMessages {
 
   // ─── Ruptura Arcana message ────────────────────────────────────
   static async sendRupturaArcana(actor, castLevel, rawDie, corruption, d100Result, effect, roll) {
-    // Tocar efeito do Sequencer para Ruptura Arcana
-    if (typeof Sequencer !== "undefined") {
-      new Sequence()
-        .effect()
-          .file("jb2a.chain_lightning.primary.blue")
-          .atLocation(actor)
-        .play();
-    }
+    // Orquestração audiovisual por Tier (Sequencer, JB2A, Canvas Shake e Web Audio)
+    this._playRupturaAudiovisual(actor, effect.tier, d100Result);
 
     const content = `
       <div class="malha-arcana-card malha-ruptura-card">
@@ -248,6 +264,20 @@ export class ChatMessages {
 
   // ─── Purge Corruption message ──────────────────────────────────
   static async sendPurgeMessage(actor, oldCorruption, newCorruption) {
+    // Efeito sonoro harmônico de purga
+    this._playProceduralSound("purge");
+
+    // Efeito de cura estelar via Sequencer
+    const enableSequencer = game.settings.get(MODULE_ID, "enableSequencerFX");
+    if (enableSequencer && typeof Sequencer !== "undefined") {
+      new Sequence()
+        .effect()
+          .file("jb2a.cure_wounds.400px.blue")
+          .atLocation(actor)
+          .scale(0.8)
+        .play();
+    }
+
     const content = `
       <div class="malha-arcana-card malha-purge">
         <div class="malha-header malha-header-purge">
@@ -301,6 +331,241 @@ export class ChatMessages {
       content,
       flags: { [MODULE_ID]: { type: "rest", isLong, oldVal, newVal } },
     });
+  }
+
+  // ─── Audiovisual & Web Audio Procedural Synthesis ─────────────
+  /**
+   * Síntese de áudio procedural via Web Audio API (zero dependências externas).
+   * @param {string} type - Tipo de efeito sonoro ("ruptura-1".."ruptura-5", "purge", "backlash")
+   */
+  static _playProceduralSound(type) {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+
+      if (type === "purge") {
+        // Acorde harmônico estelar cristalino (frequências de cura 528Hz, 660Hz, 792Hz)
+        [528, 660, 792].forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(freq, now + idx * 0.05);
+          gain.gain.setValueAtTime(0.08, now + idx * 0.05);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.8 + idx * 0.1);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + idx * 0.05);
+          osc.stop(now + 0.9 + idx * 0.1);
+        });
+        return;
+      }
+
+      if (type === "backlash") {
+        // Estalo e choque de impacto
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(240, now);
+        osc.frequency.exponentialRampToValueAtTime(40, now + 0.25);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.26);
+        return;
+      }
+
+      if (type === "ruptura-1") {
+        // Faísca rápida de alta frequência
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(1400, now + 0.15);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.2);
+        return;
+      }
+
+      if (type === "ruptura-2") {
+        // Onda de choque ressonante
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(320, now);
+        osc.frequency.exponentialRampToValueAtTime(80, now + 0.35);
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.4);
+        return;
+      }
+
+      if (type === "ruptura-3") {
+        // Vórtice dimensional distorcido
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc1.type = "sawtooth";
+        osc2.type = "square";
+        osc1.frequency.setValueAtTime(180, now);
+        osc2.frequency.setValueAtTime(120, now);
+        osc1.frequency.exponentialRampToValueAtTime(50, now + 0.6);
+        osc2.frequency.exponentialRampToValueAtTime(40, now + 0.6);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(ctx.destination);
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.7);
+        osc2.stop(now + 0.7);
+        return;
+      }
+
+      if (type === "ruptura-4") {
+        // Fratura cósmica pesada
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(450, now);
+        osc.frequency.exponentialRampToValueAtTime(35, now + 0.9);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.95);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 1.0);
+        return;
+      }
+
+      if (type === "ruptura-5") {
+        // Cataclismo com sub-grave massivo
+        [60, 45, 30].forEach((freq) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(freq, now);
+          osc.frequency.exponentialRampToValueAtTime(20, now + 1.6);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 1.7);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 1.8);
+        });
+        return;
+      }
+    } catch (err) {
+      console.warn("malha-arcana | Erro ao sintetizar som procedural:", err);
+    }
+  }
+
+  /**
+   * Orquestra sequências visuais cinemáticas dedicadas para os 5 Tiers da Ruptura
+   * usando Sequencer, JB2A, Canvas Shake e Screen Pulse.
+   */
+  static _playRupturaAudiovisual(actor, tier, d100Result) {
+    // 1. Sempre executa síntese de áudio procedural
+    this._playProceduralSound(`ruptura-${tier}`);
+
+    // 2. Pulso na tela para Tiers 3+
+    if (tier >= 3 && game.malhaArcana?.screenEffects?.triggerScreenPulse) {
+      const pulseColor = tier === 5 ? "#ef4444" : tier === 4 ? "#9333ea" : "#a855f7";
+      game.malhaArcana.screenEffects.triggerScreenPulse(pulseColor, tier * 250);
+    }
+
+    // 3. Sequencer & JB2A (se ativo e habilitado nas settings)
+    let enableSequencer = true;
+    try {
+      enableSequencer = game.settings.get(MODULE_ID, "enableSequencerFX");
+    } catch {
+      enableSequencer = true;
+    }
+    if (!enableSequencer || typeof Sequencer === "undefined") return;
+
+    try {
+      const seq = new Sequence();
+
+      switch (tier) {
+        case 1:
+          seq.effect()
+            .file("jb2a.sparks.magical.purple")
+            .atLocation(actor)
+            .scale(0.9);
+          break;
+
+        case 2:
+          seq.effect()
+            .file("jb2a.shockwave.particle.purple")
+            .atLocation(actor)
+            .scale(1.1);
+          if (typeof seq.canvasPan === "function") {
+            seq.canvasPan().shake({ duration: 500, strength: 3 });
+          }
+          break;
+
+        case 3:
+          seq.effect()
+            .file("jb2a.energy_strands.range.multiple.purple.01")
+            .atLocation(actor)
+            .scale(1.2)
+            .effect()
+            .file("jb2a.portal.vertical.vortex.purple")
+            .atLocation(actor)
+            .scale(0.8)
+            .duration(2000);
+          if (typeof seq.canvasPan === "function") {
+            seq.canvasPan().shake({ duration: 900, strength: 6 });
+          }
+          break;
+
+        case 4:
+          seq.effect()
+            .file("jb2a.black_hole.01.purple")
+            .atLocation(actor)
+            .scale(1.4)
+            .duration(2500)
+            .effect()
+            .file("jb2a.chain_lightning.primary.purple")
+            .atLocation(actor)
+            .delay(350);
+          if (typeof seq.canvasPan === "function") {
+            seq.canvasPan().shake({ duration: 1400, strength: 10 });
+          }
+          break;
+
+        case 5:
+        default:
+          seq.effect()
+            .file("jb2a.impact.ground_crack.purple")
+            .atLocation(actor)
+            .scale(1.6)
+            .effect()
+            .file("jb2a.planar_portal.purple")
+            .atLocation(actor)
+            .scale(2.0)
+            .duration(3500);
+          if (typeof seq.canvasPan === "function") {
+            seq.canvasPan().shake({ duration: 2500, strength: 16 });
+          }
+          break;
+      }
+
+      seq.play();
+    } catch (err) {
+      console.warn("malha-arcana | Erro ao executar animação do Sequencer:", err);
+    }
   }
 
   // ─── Helper: ability label ───────────────────────

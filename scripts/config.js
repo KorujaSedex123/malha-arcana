@@ -192,5 +192,35 @@ export class MalhaArcanaConfig {
       type: String,
       default: "",
     });
+
+    // Sobrecarga Voluntária (Overchanneling)
+    game.settings.register(MODULE_ID, "enableOverchannel", {
+      name: game.i18n.localize("malha-arcana.settings.enableOverchannel.name"),
+      hint: game.i18n.localize("malha-arcana.settings.enableOverchannel.hint"),
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: true,
+    });
+
+    // Efeitos Visuais de Tela / Shader FX
+    game.settings.register(MODULE_ID, "enableScreenEffects", {
+      name: game.i18n.localize("malha-arcana.settings.enableScreenEffects.name"),
+      hint: game.i18n.localize("malha-arcana.settings.enableScreenEffects.hint"),
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: true,
+    });
+
+    // Efeitos Cinemáticos Sequencer & JB2A
+    game.settings.register(MODULE_ID, "enableSequencerFX", {
+      name: game.i18n.localize("malha-arcana.settings.enableSequencerFX.name"),
+      hint: game.i18n.localize("malha-arcana.settings.enableSequencerFX.hint"),
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: true,
+    });
   }
 }

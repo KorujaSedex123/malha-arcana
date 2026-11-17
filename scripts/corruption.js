@@ -41,7 +41,7 @@ export class CorruptionTracker {
    * @param {Actor} actor
    * @param {number} value
    */
-    static async setCorruption(actor, value) {
+  static async setCorruption(actor, value) {
     const clampedValue = Math.max(0, Math.min(20, value));
     const previousValue = this.getCorruption(actor);
     const resourceName = game.settings.get(MODULE_ID, "corruptionResourceName");
@@ -98,6 +98,19 @@ export class CorruptionTracker {
   static async incrementCorruption(actor) {
     const current = this.getCorruption(actor);
     const newValue = Math.min(20, current + 1);
+    await this.setCorruption(actor, newValue);
+    return newValue;
+  }
+
+  /**
+   * Add a specific amount of corruption to an actor.
+   * @param {Actor} actor
+   * @param {number} amount
+   * @returns {number} The new corruption value
+   */
+  static async addCorruption(actor, amount) {
+    const current = this.getCorruption(actor);
+    const newValue = Math.min(20, Math.max(0, current + amount));
     await this.setCorruption(actor, newValue);
     return newValue;
   }

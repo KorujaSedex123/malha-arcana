@@ -11,6 +11,11 @@
  *
  * Falha: Dano de Rebote (irredutível) escalonado por patamar.
  * Truques: Falha gasta a ação mas sem dano de rebote.
+ *
+ * Sobrecarga Voluntária (Overchanneling):
+ *   Ganha +1d4 de Corrupção imediata antes do teste.
+ *   Sucesso: Potência Máxima (dados de dano maximizados).
+ *   Falha: Dano de Rebote dobrado (×2).
  */
 
 import { CorruptionTracker } from "./corruption.js";
@@ -27,8 +32,9 @@ export class MalhaArcanaRoller {
    * @param {number} castLevel - The effective cast level (with upcast)
    * @param {boolean} isAttackSpell - Whether this is an attack spell
    * @param {boolean} isSaveSpell - Whether this targets saves
+   * @param {object} [options={}] - Additional options (e.g. overchannel)
    */
-  static async executeCheck(actor, item, castLevel, isAttackSpell, isSaveSpell) {
+  static async executeCheck(actor, item, castLevel, isAttackSpell, isSaveSpell, options = {}) {
     // Calculate DC: always 10 + spell level
     const spellDC = 10 + castLevel;
 
@@ -38,17 +44,29 @@ export class MalhaArcanaRoller {
     const profBonus = actor.system?.attributes?.prof ?? 0;
     const totalMod = abilityMod + profBonus;
 
-    // Read corruption BEFORE incrementing — the current spell should be
-    // checked against the corruption level when the cast begins, not after
-    // this spell has already added its own point.
+    const isOverchannel = !!options.overchannel && (game.settings.get(MODULE_ID, "enableOverchannel") ?? true);
+    let overchannelCorruptionAdded = 0;
+
+    if (isOverchannel && castLevel > 0) {
+      const overRoll = new Roll("1d4");
+      await overRoll.evaluate();
+      overchannelCorruptionAdded = overRoll.total;
+    }
+
+    // Read corruption BEFORE incrementing
     const corruptionBeforeCast = CorruptionTracker.getCorruption(actor);
 
     // Increment corruption (auto if setting enabled)
     let currentCorruption;
-    if (game.settings.get(MODULE_ID, "autoIncrementCorruption")) {
+    if (game.settings.get(MODULE_ID, "autoIncrementCorruption") && castLevel > 0) {
       currentCorruption = await CorruptionTracker.incrementCorruption(actor);
     } else {
       currentCorruption = corruptionBeforeCast;
+    }
+
+    // Apply Overchannel extra corruption if activated
+    if (overchannelCorruptionAdded > 0) {
+      currentCorruption = await CorruptionTracker.addCorruption(actor, overchannelCorruptionAdded);
     }
 
     // Roll the d20 with modifier
@@ -84,6 +102,8 @@ export class MalhaArcanaRoller {
       isSaveSpell,
       corruption: currentCorruption,
       corruptionTriggered,
+      overchannel: isOverchannel,
+      overchannelCorruptionAdded,
     };
 
     // Send the main check message
@@ -94,8 +114,8 @@ export class MalhaArcanaRoller {
       // Ruptura Arcana! Ignore normal backlash — roll on the disaster table
       await RupturaArcana.trigger(actor, castLevel, rawDie, currentCorruption);
     } else if (!success) {
-      // Normal failure — backlash damage
-      await this.applyBacklash(actor, item, castLevel);
+      // Normal failure — backlash damage (doubled if overchannel)
+      await this.applyBacklash(actor, item, castLevel, { overchannel: isOverchannel });
     }
     // Success — spell manifests normally. For attack spells the total
     // also counts as the attack roll (handled by the chat message).
@@ -107,22 +127,35 @@ export class MalhaArcanaRoller {
    * @param {Item} item
    * @param {Roll} roll - The attack roll object
    * @param {number} castLevel - The spell cast level
+   * @param {object} [options={}] - Additional options (e.g. overchannel)
    */
-  static async executeAttackCheck(actor, item, roll, castLevel) {
+  static async executeAttackCheck(actor, item, roll, castLevel, options = {}) {
+    const isOverchannel = !!options.overchannel && (game.settings.get(MODULE_ID, "enableOverchannel") ?? true);
+    let overchannelCorruptionAdded = 0;
+
+    if (isOverchannel && castLevel > 0) {
+      const overRoll = new Roll("1d4");
+      await overRoll.evaluate();
+      overchannelCorruptionAdded = overRoll.total;
+    }
+
     let currentCorruption = CorruptionTracker.getCorruption(actor);
     if (game.settings.get(MODULE_ID, "autoIncrementCorruption") && castLevel > 0) {
       currentCorruption = await CorruptionTracker.incrementCorruption(actor);
     }
-    
+    if (overchannelCorruptionAdded > 0) {
+      currentCorruption = await CorruptionTracker.addCorruption(actor, overchannelCorruptionAdded);
+    }
+
     // Extract raw die from the roll
-    const d20Term = roll.terms ? roll.terms.find(t => t.faces === 20) : null;
-    const rawDie = d20Term ? d20Term.results.find(r => r.active).result : roll.dice[0].results[0].result;
+    const d20Term = roll.terms ? roll.terms.find((t) => t.faces === 20) : null;
+    const rawDie = d20Term ? d20Term.results.find((r) => r.active).result : roll.dice[0].results[0].result;
     const totalRoll = roll.total;
     const spellDC = 10 + castLevel;
     const success = totalRoll >= spellDC;
-    
+
     const corruptionTriggered = rawDie <= currentCorruption && castLevel > 0;
-    
+
     const result = {
       roll,
       actor,
@@ -140,6 +173,8 @@ export class MalhaArcanaRoller {
       isSaveSpell: false,
       corruption: currentCorruption,
       corruptionTriggered,
+      overchannel: isOverchannel,
+      overchannelCorruptionAdded,
     };
 
     await ChatMessages.sendCheckResult(result);
@@ -147,7 +182,7 @@ export class MalhaArcanaRoller {
     if (corruptionTriggered) {
       await RupturaArcana.trigger(actor, castLevel, rawDie, currentCorruption);
     } else if (!success) {
-      await this.applyBacklash(actor, item, castLevel);
+      await this.applyBacklash(actor, item, castLevel, { overchannel: isOverchannel });
     }
   }
 
@@ -163,8 +198,9 @@ export class MalhaArcanaRoller {
    * @param {Actor} actor
    * @param {Item} item
    * @param {number} castLevel
+   * @param {object} [options={}] - Options (e.g. overchannel)
    */
-  static async applyBacklash(actor, item, castLevel) {
+  static async applyBacklash(actor, item, castLevel, options = {}) {
     if (castLevel === 0) return; // Cantrips are safe
 
     // Determine die size
@@ -173,12 +209,17 @@ export class MalhaArcanaRoller {
     else if (castLevel <= 6) dieSize = game.settings.get(MODULE_ID, "backlashDieTier2");
     else dieSize = game.settings.get(MODULE_ID, "backlashDieTier3");
 
-    const formula = `${castLevel}d${dieSize}`;
+    let formula = `${castLevel}d${dieSize}`;
     const damageType = game.settings.get(MODULE_ID, "backlashDamageType");
 
     const damageRoll = new Roll(formula);
     await damageRoll.evaluate();
-    const totalDamage = damageRoll.total;
+    let totalDamage = damageRoll.total;
+
+    if (options.overchannel) {
+      totalDamage = totalDamage * 2;
+      formula = `(${formula}) × 2 [${game.i18n.localize("malha-arcana.dialog.overchannel")}]`;
+    }
 
     // Narrative flavor based on class
     let narrativeFlavor = "";
@@ -187,14 +228,14 @@ export class MalhaArcanaRoller {
     }
 
     // Send backlash message
-    await ChatMessages.sendBacklashDamage(actor, item, castLevel, formula, totalDamage, damageType, damageRoll, narrativeFlavor);
+    await ChatMessages.sendBacklashDamage(actor, item, castLevel, formula, totalDamage, damageType, damageRoll, narrativeFlavor, options);
 
     // Auto-apply damage if enabled
     if (game.settings.get(MODULE_ID, "autoApplyBacklash")) {
       const hp = actor.system?.attributes?.hp || {};
       let remainingDamage = totalDamage;
       const updates = {};
-      
+
       if (hp.temp > 0) {
         if (hp.temp >= remainingDamage) {
           updates["system.attributes.hp.temp"] = hp.temp - remainingDamage;
@@ -204,12 +245,12 @@ export class MalhaArcanaRoller {
           updates["system.attributes.hp.temp"] = 0;
         }
       }
-      
+
       if (remainingDamage > 0) {
         const currentHP = hp.value ?? 0;
         updates["system.attributes.hp.value"] = Math.max(0, currentHP - remainingDamage);
       }
-      
+
       if (Object.keys(updates).length > 0) {
         await actor.update(updates);
       }

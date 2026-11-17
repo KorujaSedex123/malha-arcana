@@ -14,8 +14,8 @@ import { ChatMessages } from "./chat-messages.js";
 import { CorruptionTracker } from "./corruption.js";
 import "./lib/lib.js";
 import { RUPTURA_100_EFFECTS } from "./data/ruptura-effects.js";
-import { TEST_CHARACTERS } from "./characters-data.js";
 import { initMonksTokenBarIntegration, isSpellcaster } from "./integrations/monks-tokenbar.js";
+import { ScreenEffects } from "./ui/screen-effects.js";
 
 const MODULE_ID = "malha-arcana";
 const PURGE_NAMES = ["Ação: Purgar a Malha", "Purgar a Malha"];
@@ -23,6 +23,12 @@ const PURGE_ACTIVITY_ID = "malhaPurgar00001";
 
 /** Ataques de magia aguardando a rolagem de ataque. Chave: `${actor.id}.${item.id}` */
 const pendingSpellAttacks = new Map();
+
+/** Estado de Sobrecarga selecionado no diálogo de conjuração. Chave: `${actor.id}.${item.id}` */
+const pendingOverchannels = new Map();
+
+/** Magias cujo teste de Sobrecarga teve sucesso e aguardam rolagem de dano maximizada */
+const activeOverchannels = new Set();
 
 const _pendingKey = (actor, item) => `${actor.id}.${item.id}`;
 const _isPurgeItem = (item) => PURGE_NAMES.includes(item?.name);
@@ -35,6 +41,9 @@ Hooks.once("init", function () {
   // Register module settings
   MalhaArcanaConfig.registerSettings();
 
+  // Inicializa efeitos visuais de tela / Shader FX
+  ScreenEffects.init();
+
   // Store module reference globally for convenience
   game.malhaArcana = {
     MODULE_ID,
@@ -42,7 +51,7 @@ Hooks.once("init", function () {
     ruptura: RupturaArcana,
     chat: ChatMessages,
     corruption: CorruptionTracker,
-    createTestCharacters: () => _ensureTestCharacters(true),
+    screenEffects: ScreenEffects,
   };
 });
 
@@ -55,8 +64,8 @@ Hooks.once("ready", async function () {
   // Cria/importa a RollTable para a aba de Tabelas do mundo se o GM ainda não tiver
   await _ensureWorldRupturaTable();
 
-  // Garante os 5 personagens de teste na aba de Atores do mundo em uma pasta própria
-  await _ensureTestCharacters();
+  // Rotina de limpeza: remove pasta e atores de teste legados caso existam no mundo
+  await _cleanupTestCharacters();
 
   // Boas-vindas na primeira inicialização (estilo Dice So Nice)
   if (game.user.isGM) {
@@ -229,6 +238,12 @@ Hooks.on("dnd5e.preUseActivity", (activity, usageConfig) => {
     if (!current || !/^spell\d+$/.test(current)) usageConfig.spell.slot = `spell${level}`;
   }
 
+  // Captura flag de Sobrecarga selecionada
+  const key = _pendingKey(actor, item);
+  if (usageConfig?.malhaOverchannel || pendingOverchannels.get(key)) {
+    usageConfig.overchannel = true;
+  }
+
   return true;
 });
 
@@ -247,6 +262,10 @@ Hooks.on("dnd5e.postUseActivity", async (activity, usageConfig) => {
     return;
   }
 
+  const key = _pendingKey(actor, item);
+  const isOverchannel = !!(usageConfig?.overchannel || usageConfig?.malhaOverchannel || pendingOverchannels.get(key));
+  pendingOverchannels.delete(key);
+
   const castLevel = Math.max(spellLevel, _resolveCastLevel(actor, usageConfig, spellLevel));
 
   const isAttackSpell = activity.type === "attack";
@@ -254,15 +273,19 @@ Hooks.on("dnd5e.postUseActivity", async (activity, usageConfig) => {
 
   // Attack spells: the attack roll itself acts as the check
   if (isAttackSpell) {
-    pendingSpellAttacks.set(_pendingKey(actor, item), {
+    pendingSpellAttacks.set(key, {
       castLevel,
+      isOverchannel,
       lastTurnProcessed: null,
     });
     ui.notifications.info(game.i18n.format("malha-arcana.roll.attackPrompt", { name: item.name }));
     return;
   }
 
-  await MalhaArcanaRoller.executeCheck(actor, item, castLevel, isAttackSpell, isSaveSpell);
+  await MalhaArcanaRoller.executeCheck(actor, item, castLevel, isAttackSpell, isSaveSpell, { overchannel: isOverchannel });
+  if (isOverchannel) {
+    activeOverchannels.add(key);
+  }
 });
 
 /**
@@ -317,7 +340,41 @@ Hooks.on("dnd5e.rollAttack", async (rolls, data) => {
     pendingSpellAttacks.delete(key);
   }
 
-  await MalhaArcanaRoller.executeAttackCheck(actor, item, roll, pending.castLevel);
+  const isOverchannel = !!pending.isOverchannel;
+  await MalhaArcanaRoller.executeAttackCheck(actor, item, roll, pending.castLevel, { overchannel: isOverchannel });
+  if (isOverchannel) {
+    activeOverchannels.add(key);
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────
+// Sobrecarga Voluntária: Maximização de Dano no D&D 5e
+// ─────────────────────────────────────────────────────────────────
+Hooks.on("dnd5e.preRollDamage", (activity, rollConfig) => {
+  const item = activity?.item;
+  const actor = item?.actor;
+  if (!actor || !item) return;
+  const key = _pendingKey(actor, item);
+  if (activeOverchannels.has(key)) {
+    if (rollConfig) {
+      rollConfig.maximize = true;
+      if (Array.isArray(rollConfig.rolls)) {
+        for (const r of rollConfig.rolls) {
+          r.options ??= {};
+          r.options.maximize = true;
+        }
+      }
+    }
+  }
+});
+
+Hooks.on("dnd5e.rollDamage", (rolls, data) => {
+  const activity = data?.subject;
+  const item = activity?.item;
+  const actor = item?.actor;
+  if (!actor || !item) return;
+  const key = _pendingKey(actor, item);
+  activeOverchannels.delete(key);
 });
 
 // ─────────────────────────────────────────────────────────────────
@@ -556,58 +613,44 @@ async function _ensureWorldRupturaTable() {
 }
 
 /**
- * Garante que os 5 personagens de teste da Malha Arcana existam na aba de Atores do mundo em uma pasta própria,
- * e remove duplicatas caso o usuário tenha tentado importar várias vezes.
- * @param {boolean} [force=false]
+ * Rotina de limpeza única: remove a pasta de teste legada e seus personagens caso existam.
  */
-async function _ensureTestCharacters(force = false) {
+async function _cleanupTestCharacters() {
   if (!game.user.isGM) return;
 
   const folderName = "Malha Arcana — Personagens de Teste";
-  let folder = game.folders.find((f) => f.type === "Actor" && f.name === folderName);
+  const folder = game.folders.find((f) => f.type === "Actor" && f.name === folderName);
 
-  if (!folder) {
-    folder = await Folder.create({
-      name: folderName,
-      type: "Actor",
-      color: "#7c3aed",
-      sorting: "a",
-    });
-  }
+  const testActorNames = [
+    "Elena Sombrévora (Arquimaga Evocadora - Nível 17)",
+    "Irmão Theron (Sumo Sacerdote Solar - Nível 17)",
+    "Malakor o Sussurrante (Bruxo do Olho Cósmico - Nível 17)",
+    "Lyra das Cordas Eternas (Barda Celestial - Nível 16)",
+    "Kaelen Chama-Primordial (Feiticeiro Dracônico - Nível 17)"
+  ];
 
-  // Remove duplicatas que possuam o mesmo nome dos personagens de teste
-  for (const charData of TEST_CHARACTERS) {
-    const matching = game.actors.filter((a) => a.name === charData.name);
-    if (matching.length > 1) {
-      console.log(`malha-arcana | Removendo ${matching.length - 1} duplicatas de "${charData.name}"...`);
-      for (let i = 1; i < matching.length; i++) {
-        await matching[i].delete();
-      }
+  const actorsToDelete = game.actors.filter((a) => {
+    if (folder && a.folder?.id === folder.id) return true;
+    if (testActorNames.includes(a.name)) return true;
+    return false;
+  });
+
+  for (const actor of actorsToDelete) {
+    try {
+      console.log(`malha-arcana | Removendo ator de teste legado: "${actor.name}"...`);
+      await actor.delete();
+    } catch (err) {
+      console.warn(`malha-arcana | Erro ao remover ator de teste:`, err);
     }
   }
 
-  let createdCount = 0;
-  for (const charData of TEST_CHARACTERS) {
-    const existing = game.actors.find((a) => a.name === charData.name);
-    if (!existing || force) {
-      if (existing && force) await existing.delete();
-      const dataToCreate = foundry.utils.duplicate(charData);
-      dataToCreate.folder = folder.id;
-      delete dataToCreate._id;
-      dataToCreate.ownership = { default: 2 }; // Permissão Observador para os jogadores poderem abrir
-      await Actor.create(dataToCreate);
-      createdCount++;
-    } else if (existing && existing.folder !== folder.id) {
-      // Se já existe mas está fora da pasta, move para dentro da pasta
-      await existing.update({ folder: folder.id });
+  if (folder) {
+    try {
+      console.log(`malha-arcana | Removendo pasta de teste legada "${folderName}"...`);
+      await folder.delete();
+    } catch (err) {
+      console.warn(`malha-arcana | Erro ao remover pasta de teste:`, err);
     }
-  }
-
-  if (createdCount > 0) {
-    ui.notifications.info(game.i18n.format("malha-arcana.characters.testCreated", {
-      count: createdCount,
-      folder: folderName,
-    }));
   }
 }
 
@@ -625,8 +668,9 @@ Hooks.on("renderActivityUsageDialog", (dialog, html) => {
 
   const form = html.querySelector("form") || html;
 
-  // 1. DEDUPLICAÇÃO: remove instâncias anteriores de prévia (ocorre quando o diálogo re-renderiza via submitOnChange)
+  // 1. DEDUPLICAÇÃO: remove instâncias anteriores de prévia e sobrecarga (ocorre quando o diálogo re-renderiza via submitOnChange)
   form.querySelectorAll(".malha-dialog-preview").forEach((el) => el.remove());
+  form.querySelectorAll(".malha-overchannel-group").forEach((el) => el.remove());
 
   // 2. Se a opção de desativar espaços de magia estiver ativa:
   const bypass = game.settings.get(MODULE_ID, "disableSpellSlots");
@@ -704,6 +748,37 @@ Hooks.on("renderActivityUsageDialog", (dialog, html) => {
 
   // Insere a prévia dentro do formulário antes dos botões de envio
   form.appendChild(previewBox);
+
+  // Sobrecarga Voluntária (Overchanneling)
+  const enableOverchannel = game.settings.get(MODULE_ID, "enableOverchannel") ?? true;
+  if (enableOverchannel) {
+    const key = _pendingKey(actor, item);
+    const wasChecked = !!pendingOverchannels.get(key);
+
+    const overchannelGroup = document.createElement("div");
+    overchannelGroup.className = "form-group malha-overchannel-group";
+    overchannelGroup.style.cssText = "margin-top: 8px; padding: 6px 10px; background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 4px;";
+    overchannelGroup.innerHTML = `
+      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: bold; color: #d8b4fe;">
+        <input type="checkbox" name="malhaOverchannel" id="ma-overchannel-input" style="margin: 0; width: 16px; height: 16px; accent-color: #a855f7;" ${wasChecked ? "checked" : ""}>
+        <span>⚡ ${game.i18n.localize("malha-arcana.dialog.overchannel")}</span>
+      </label>
+      <p class="notes" style="margin: 4px 0 0 24px; font-size: 11px; color: #cbd5e1; line-height: 1.3;">
+        ${game.i18n.localize("malha-arcana.dialog.overchannelHint")}
+      </p>
+    `;
+    form.appendChild(overchannelGroup);
+
+    const input = overchannelGroup.querySelector('input[name="malhaOverchannel"]');
+    if (input) {
+      input.addEventListener("change", (ev) => {
+        pendingOverchannels.set(key, ev.target.checked);
+        if (dialog.usageConfig) {
+          dialog.usageConfig.overchannel = ev.target.checked;
+        }
+      });
+    }
+  }
 
   // Ao alterar o dropdown no formulário, atualiza a CD em tempo real
   if (slotSelect) {

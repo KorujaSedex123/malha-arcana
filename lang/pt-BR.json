@@ -34,6 +34,13 @@
   "malha-arcana.settings.customRupturaTable.name": "Tabela de Ruptura Customizada",
   "malha-arcana.settings.customRupturaTable.hint": "Nome ou UUID da RollTable a ser rolada em vez da tabela padrão.",
 
+  "malha-arcana.settings.enableOverchannel.name": "Habilitar Sobrecarga Voluntária (Overchannel)",
+  "malha-arcana.settings.enableOverchannel.hint": "Permite que conjuradores forcem a Malha ao lançar magias para maximizar dano em troca de Corrupção extra e risco crítico.",
+  "malha-arcana.settings.enableScreenEffects.name": "Habilitar Efeitos Visuais de Tela",
+  "malha-arcana.settings.enableScreenEffects.hint": "Exibe vinhetas de distorção púrpura na tela quando a Corrupção do personagem atinge níveis críticos.",
+  "malha-arcana.settings.enableSequencerFX.name": "Habilitar Animações do Sequencer (JB2A)",
+  "malha-arcana.settings.enableSequencerFX.hint": "Executa animações de pulso arcano, relâmpagos de ricochete e fendas de Ruptura se os módulos Sequencer e JB2A estiverem ativos.",
+
   "malha-arcana.welcome.title": "Malha Arcana — Boas-Vindas",
   "malha-arcana.welcome.heading": "🌀 Bem-vindo à Malha Arcana!",
   "malha-arcana.welcome.subheading": "Sistema Alternativo de Magia para D&D 5e",
@@ -181,6 +188,12 @@
 
   "malha-arcana.purge.chat.title": "Purgar a Malha",
   "malha-arcana.purge.chat.reduced": "Corrupção reduzida em 1 ponto.",
+
+  "malha-arcana.dialog.overchannel": "Sobrecarga Voluntária da Malha",
+  "malha-arcana.dialog.overchannelHint": "Force a Trama Arcana para maximizar dados de dano (+1d4 de Corrupção imediata e dano de Rebote dobrado em caso de falha).",
+  "malha-arcana.chat.overchannelActive": "⚡ Sobrecarga Voluntária Ativa! (+{corruptionAdded} Corrupção)",
+  "malha-arcana.chat.overchannelBacklashDoubled": "💥 Rebote de Sobrecarga! O dano de ricochete foi dobrado e não pode ser reduzido.",
+  "malha-arcana.chat.overchannelMaxDamage": "🔥 Potência Máxima! Todos os dados de dano foram maximizados pela Malha Arcana.",
 
   "malha-arcana.firstrun": "Malha Arcana ativada! Configure o recurso 'Corrupção' nas fichas dos jogadores e distribua a característica 'Ação: Purgar a Malha'."
 }

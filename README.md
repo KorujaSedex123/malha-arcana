@@ -15,6 +15,9 @@ Substitui os espaços de magia tradicionais do D&D 5e por um sistema de conjura�
 
 ## ✨ Destaques da Versão
 
+- ⚡ **Sobrecarga Voluntária (*Overchanneling*)**: O conjurador pode forçar a Malha para maximizar todos os dados de dano da magia (+1d4 de Corrupção imediata e dobro de Rebote em caso de falha).
+- 🌌 **Efeitos Visuais de Tela (*Screen Shaders*)**: Vinhetas cósmicas e pulsações arroxeadas na tela do jogador conforme a Corrupção atinge estágios Instável, Crítico ou Catastrófico.
+- 🎬 **Cinemáticas Sequencer / JB2A por Tier**: Animações cinematográficas distintas para cada um dos 5 Tiers da Ruptura (de faíscas sutis até fendas planares cósmicas com abalo sísmico de tela), com sintetizador de áudio procedural nativo via Web Audio API.
 - 🎲 **100 Efeitos Únicos de Ruptura (1 a 100)**: Cada número do d100 possui nome, ícone temático e descrição própria.
 - ⚡ **Automação de Active Effects**: Condições e status (Cegueira, Atordoamento, Prostrado, etc.) aplicados automaticamente ao personagem.
 - 🧘 **Integração com Descansos**: Alívio de Corrupção configurável após Descanso Curto e Longo.

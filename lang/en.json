@@ -34,6 +34,13 @@
   "malha-arcana.settings.customRupturaTable.name": "Custom Rupture Table",
   "malha-arcana.settings.customRupturaTable.hint": "Name or UUID of the RollTable to roll instead of the default table.",
 
+  "malha-arcana.settings.enableOverchannel.name": "Enable Overchanneling",
+  "malha-arcana.settings.enableOverchannel.hint": "Allows spellcasters to push the Weave when casting spells to maximize damage in exchange for extra Corruption and critical risk.",
+  "malha-arcana.settings.enableScreenEffects.name": "Enable Screen Visual Effects",
+  "malha-arcana.settings.enableScreenEffects.hint": "Displays purple distortion vignettes on screen when character Corruption reaches critical levels.",
+  "malha-arcana.settings.enableSequencerFX.name": "Enable Sequencer (JB2A) Animations",
+  "malha-arcana.settings.enableSequencerFX.hint": "Plays automatic animations for arcane pulses, backlash lightning, and Rupture rifts if the Sequencer and JB2A modules are active.",
+
   "malha-arcana.welcome.title": "Arcane Weave — Welcome",
   "malha-arcana.welcome.heading": "🌀 Welcome to Arcane Weave!",
   "malha-arcana.welcome.subheading": "Alternative Magic System for D&D 5e",
@@ -181,6 +188,12 @@
 
   "malha-arcana.purge.chat.title": "Purge the Weave",
   "malha-arcana.purge.chat.reduced": "Corruption reduced by 1 point.",
+
+  "malha-arcana.dialog.overchannel": "Overchannel the Weave",
+  "malha-arcana.dialog.overchannelHint": "Push the Arcane Weave to maximize damage dice (+1d4 immediate Corruption and doubled Backlash damage on failure).",
+  "malha-arcana.chat.overchannelActive": "⚡ Overchannel Active! (+{corruptionAdded} Corruption)",
+  "malha-arcana.chat.overchannelBacklashDoubled": "💥 Overchannel Backlash! Backlash damage was doubled and cannot be reduced.",
+  "malha-arcana.chat.overchannelMaxDamage": "🔥 Maximum Potency! All damage dice were maximized by the Arcane Weave.",
 
   "malha-arcana.firstrun": "Malha Arcana activated! Set up the 'Corruption' resource on player sheets and distribute the 'Action: Purge the Weave' class feature."
 }

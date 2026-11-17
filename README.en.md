@@ -15,6 +15,9 @@ Replaces traditional D&D 5e spell slots with a volatile, dangerous, and living s
 
 ## ✨ Version Highlights
 
+- ⚡ **Overchanneling**: Spellcasters can push the Weave to maximize all spell damage dice (+1d4 immediate Corruption and doubled Backlash damage on failure).
+- 🌌 **Screen Shaders & Vignette FX**: Cosmic purple vignettes and ethereal pulses on the player's screen as Corruption reaches Unstable, Critical, or Catastrophic levels.
+- 🎬 **Tier-Dedicated Sequencer / JB2A Cinematics**: Distinct cinematic animations for each of the 5 Rupture Tiers (from subtle static sparks to cataclysmic planar rifts with screen shake), with procedural Web Audio API audio synthesis fallback.
 - 🎲 **100 Unique Rupture Effects (1 to 100)**: Every number on the d100 features its own thematic title, custom icon, and detailed mechanical description.
 - ⚡ **Active Effects & Conditions Automation**: Conditions (Blinded, Stunned, Prone, etc.) and custom effects are automatically applied to the character upon Rupture.
 - 🧘 **Rest Integration**: Configurable Corruption recovery on Short and Long Rests (`dnd5e.restCompleted`).
